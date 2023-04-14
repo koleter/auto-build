@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -48,8 +49,8 @@ func main() {
 func route(c *config.Config) *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/", nil)
-	r.HandleFunc("/porject/add", logic.DoAddPorject).Methods(http.MethodPost)
-	r.HandleFunc("/porject/list", logic.DoListPorject).Methods(http.MethodGet)
+	r.HandleFunc("/porject/add", logic.AddPorject).Methods(http.MethodPost)
+	r.HandleFunc("/porject/list", logic.ListPorject).Methods(http.MethodGet)
 	r.HandleFunc("/goenv/add", logic.AddEnv).Methods(http.MethodPost)
 	r.HandleFunc("/goenv/list", logic.ListEnv).Methods(http.MethodGet)
 
@@ -59,14 +60,17 @@ func route(c *config.Config) *mux.Router {
 }
 
 func checkDir(c *config.Config) error {
+	c.DefaultGoPath, _ = filepath.Abs(c.DefaultGoPath)
 	err := os.MkdirAll(c.DefaultGoPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
+	c.DistPath, _ = filepath.Abs(c.DistPath)
 	err = os.MkdirAll(c.DistPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
+	c.GoEnvPath, _ = filepath.Abs(c.GoEnvPath)
 	err = os.MkdirAll(c.GoEnvPath, os.ModePerm)
 	if err != nil {
 		return err

@@ -8,6 +8,8 @@ type Task struct {
 	Branch    string `xorm:"varchar(10)"`
 	MainFile  string `xorm:"varchar(20)"`  // 主文件
 	DistFile  string `xorm:"varchar(20)"`  // 目标文件
+	DistOs    string `xorm:"varchar(10)"`  // 目标系统
+	DistArch  string `xorm:"varchar(10)"`  // 目标架构
 	GoVersion int64  `xorm:"varchar(10)"`  // envid
 	Env       string `xorm:"varchar(255)"` // 环境变量key1=value1;key2=value2
 }

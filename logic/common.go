@@ -8,13 +8,13 @@ import (
 	"igit.58corp.com/mengfanyu03/auto-build-go/log"
 )
 
-func checkParam(r *http.Request) (map[string]string, error) {
+func checkParam(r *http.Request) (map[string]interface{}, error) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Errorf("read body error:%s", err)
 		return nil, err
 	}
-	param := make(map[string]string)
+	param := make(map[string]interface{})
 	err = json.Unmarshal(data, &param)
 	if err != nil {
 		log.Errorf("json unmarshal error:%s", err)

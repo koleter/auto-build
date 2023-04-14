@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"igit.58corp.com/mengfanyu03/auto-build-go/config"
@@ -17,9 +18,11 @@ import (
 	"igit.58corp.com/mengfanyu03/auto-build-go/model"
 )
 
-var (
-	GoPkgUrlTemp = `go([0-9]*\.[0-9]*[\.[0-9]*]?).linux-amd64.tar.gz`
-)
+var GoPkgUrlTemp string
+
+func init() {
+	GoPkgUrlTemp = `go([0-9]*\.[0-9]*[\.[0-9]*]?).` + runtime.GOOS + `-` + runtime.GOARCH + `.tar.gz`
+}
 
 func AddEnv(wr http.ResponseWriter, r *http.Request) {
 	param, err := checkParam(r)
@@ -30,7 +33,7 @@ func AddEnv(wr http.ResponseWriter, r *http.Request) {
 	}
 	log.Infof("add env param %+v", param)
 
-	go addEnv(param["url"], param["sha2"])
+	go addEnv(param["url"].(string), param["sha2"].(string))
 
 	writeSuccess(wr, "start add go env")
 }
@@ -80,8 +83,8 @@ func addEnv(url, sha2 string) {
 
 	gv := &model.GoVersion{
 		Version:   version,
-		Os:        "Linux",
-		Arch:      "x86-64",
+		Os:        runtime.GOOS,
+		Arch:      runtime.GOARCH,
 		Url:       url,
 		Sha2:      sha2,
 		LocalPath: path.Join(config.C.GoEnvPath, "go"+version),
