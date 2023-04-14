@@ -19,7 +19,7 @@ func InitSqlLite(filepath string) (err error) {
 }
 
 func AuthMergeTable() error {
-	return engine.Sync(new(GoEnv), new(Project), new(Task), new(TaskLog))
+	return engine.Sync(new(GoVersion), new(Project), new(Task), new(TaskLog))
 }
 
 func Close() {

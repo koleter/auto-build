@@ -2,5 +2,6 @@ config.toml
 
 output/
 goenv/
+workspace/
 
 *.db

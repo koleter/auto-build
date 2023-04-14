@@ -18,8 +18,6 @@ func main() {
 		fmt.Print("usage: auto-build config.toml")
 		os.Exit(0)
 	}
-	log.InitLogger()
-
 	config.LoadConfig(os.Args[1])
 
 	err := model.InitSqlLite(config.C.SqlFile)
@@ -31,6 +29,11 @@ func main() {
 		log.Panicf("merge error:%s", err)
 	}
 	defer model.Close()
+
+	err = checkDir(config.C)
+	if err != nil {
+		log.Panicf("create dir error:%s", err)
+	}
 
 	srv := &http.Server{
 		Handler:      route(config.C),
@@ -47,10 +50,26 @@ func route(c *config.Config) *mux.Router {
 	r.HandleFunc("/", nil)
 	r.HandleFunc("/porject/add", logic.DoAddPorject).Methods(http.MethodPost)
 	r.HandleFunc("/porject/list", logic.DoListPorject).Methods(http.MethodGet)
-	r.HandleFunc("/goenv/add", logic.DoAddPorject).Methods(http.MethodPost)
-	r.HandleFunc("/goenv/list", logic.DoListPorject).Methods(http.MethodGet)
+	r.HandleFunc("/goenv/add", logic.AddEnv).Methods(http.MethodPost)
+	r.HandleFunc("/goenv/list", logic.ListEnv).Methods(http.MethodGet)
 
 	r.PathPrefix("/output/").Handler(http.StripPrefix("/output/", http.FileServer(http.Dir(c.DistPath))))
 
 	return r
+}
+
+func checkDir(c *config.Config) error {
+	err := os.MkdirAll(c.DefaultGoPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(c.DistPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(c.GoEnvPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
 }

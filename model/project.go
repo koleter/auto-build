@@ -7,8 +7,8 @@ type Project struct {
 	Url       string `xorm:"varchar(50)"` // 去掉前面的 https://
 	Token     string `xorm:"varchar(50)"`
 	GoMod     bool   `xorm:"bool"`
-	WorkSpace string `xorm:"varchar(50)"` //only go mod used
-	GoVersion string `xorm:"varchar(10)"`
+	WorkSpace string `xorm:"varchar(50)"`  //only go mod used
+	Env       string `xorm:"varchar(255)"` // 环境变量key1=value1;key2=value2
 }
 
 func (p *Project) Insert() error {

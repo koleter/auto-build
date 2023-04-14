@@ -6,7 +6,7 @@ import (
 
 var log *logging.Logger
 
-func InitLogger() {
+func init() {
 	log = logging.MustGetLogger("hash-backend")
 }
 
