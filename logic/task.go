@@ -23,14 +23,14 @@ func AddTask(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectId := param["project_id"].(int64)
+	projectId := int64(param["project_id"].(float64))
 	if _, err := model.GetProject(projectId); err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
 		return
 	}
 
-	go_ver_id := param["go_version_id"].(int64)
+	go_ver_id := int64(param["go_version_id"].(float64))
 	if _, err := model.GetGoVersion(go_ver_id); err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
@@ -43,14 +43,18 @@ func AddTask(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	destos := param["dest_os"].(string)
-	if len(destos) == 0 {
-		destos = runtime.GOOS
+	destos := runtime.GOOS
+	if param["dest_os"] != nil && len(param["dest_os"].(string)) > 0 {
+		destos = param["dest_os"].(string)
+	}
+	destArch := runtime.GOARCH
+	if param["dest_arch"] != nil && len(param["dest_arch"].(string)) > 0 {
+		destArch = param["dest_arch"].(string)
 	}
 
-	destArch := param["dest_arch"].(string)
-	if len(destArch) == 0 {
-		destArch = runtime.GOARCH
+	env := ""
+	if param["env"] != nil {
+		env = param["env"].(string)
 	}
 
 	t := &model.Task{
@@ -61,7 +65,7 @@ func AddTask(wr http.ResponseWriter, r *http.Request) {
 		DestFile:  param["dest_file"].(string),
 		DestOs:    destos,
 		DestArch:  destArch,
-		Env:       param["env"].(string),
+		Env:       env,
 	}
 	err = model.InsertTask(t)
 	if err != nil {
@@ -154,7 +158,7 @@ func startTask(taskid, id int64) {
 	destfile := path.Join(config.C.DestPath, p.Name, t.Branch, t.DestFile)
 	log.Debug("dest file:%s", destfile)
 
-	c := exec.Command(gobin, "build", srcfile, "-o", destfile)
+	c := exec.Command(gobin, "build", "-o", destfile, srcfile)
 	c.Dir = p.LocalPath
 	c.Env = append(c.Env, "GOPATH="+p.WorkSpace)
 	c.Env = append(c.Env, strings.Split(p.Env, ";")...)

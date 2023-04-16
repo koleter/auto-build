@@ -99,6 +99,7 @@ func addEnv(url, sha2 string) {
 }
 
 func parseUrl(url string) (string, error) {
+	log.Debug(GoPkgUrlTemp)
 	re, err := regexp.Compile(GoPkgUrlTemp)
 	if err != nil {
 		log.Errorf("regexp compile error:%s", err)

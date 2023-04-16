@@ -46,7 +46,7 @@ func UpdateTaskLog(id int64, status int) {
 
 func GetTask(id int64) (*Task, error) {
 	t := &Task{}
-	has, err := engine.Where("id = ?").Get(t)
+	has, err := engine.Where("id = ?", id).Get(t)
 	if err != nil {
 		return nil, err
 	}

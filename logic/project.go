@@ -44,7 +44,7 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 	if param["gomod"].(bool) {
 		workspace = config.C.DefaultGoPath
 	} else if len(param["workspace"].(string)) > 0 {
-		workspace = param["workspace"].(string)
+		workspace, _ = filepath.Abs(param["workspace"].(string))
 	} else {
 		log.Errorf("workspace not set")
 		writeError(wr, "git error", "must set workspace")
