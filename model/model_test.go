@@ -14,3 +14,9 @@ func TestModel(t *testing.T) {
 		return
 	}
 }
+
+func TestProject(t *testing.T) {
+	TestModel(t)
+	p, err := GetProject(1)
+	t.Logf("project:%+v,err:%s", p, err)
+}

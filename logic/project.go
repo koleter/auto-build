@@ -93,7 +93,7 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 		Env:       param["env"].(string),
 	}
 
-	err = p.Insert()
+	err = model.InsertProject(p)
 	if err != nil {
 		log.Errorf("insert sql error:%s", err)
 		writeError(wr, "sql error", err.Error())

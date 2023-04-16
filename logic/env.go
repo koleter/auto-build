@@ -90,7 +90,7 @@ func addEnv(url, sha2 string) {
 		LocalPath: path.Join(config.C.GoEnvPath, "go"+version),
 	}
 
-	err = gv.Insert()
+	err = model.InsertGoVersion(gv)
 	if err != nil {
 		log.Errorf("insert sql error:%s", err)
 		return
@@ -112,13 +112,13 @@ func parseUrl(url string) (string, error) {
 	return res[1], nil
 }
 
-func downloadFile(url, distPath string, insertOnly bool) (string, error) {
-	dist := parseUrlFilename(url)
-	if fileExist(dist) {
+func downloadFile(url, destPath string, insertOnly bool) (string, error) {
+	dest := parseUrlFilename(url)
+	if fileExist(dest) {
 		if insertOnly {
-			return "", fmt.Errorf("file %s exist", dist)
+			return "", fmt.Errorf("file %s exist", dest)
 		} else {
-			os.Remove(dist)
+			os.Remove(dest)
 		}
 	}
 
@@ -128,7 +128,7 @@ func downloadFile(url, distPath string, insertOnly bool) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	out, err := os.Create(path.Join(distPath, dist))
+	out, err := os.Create(path.Join(destPath, dest))
 	if err != nil {
 		return "", err
 	}
@@ -139,7 +139,7 @@ func downloadFile(url, distPath string, insertOnly bool) (string, error) {
 		return "", err
 	}
 
-	return path.Join(distPath, dist), nil
+	return path.Join(destPath, dest), nil
 }
 
 func fileExist(file string) bool {
@@ -170,7 +170,7 @@ func getFileSha2(filename string) string {
 	return fmt.Sprintf("%x", sum)
 }
 
-func tarFile(file, dist string, deleteAfterTar bool) error {
+func tarFile(file, dest string, deleteAfterTar bool) error {
 	fr, err := os.Open(file)
 	if err != nil {
 		return err
@@ -194,11 +194,11 @@ func tarFile(file, dist string, deleteAfterTar bool) error {
 		}
 
 		if h.FileInfo().IsDir() {
-			os.MkdirAll(path.Join(dist, h.Name), os.ModePerm)
+			os.MkdirAll(path.Join(dest, h.Name), os.ModePerm)
 			continue
 		}
 
-		fw, err := os.OpenFile(path.Join(dist, h.Name), os.O_CREATE|os.O_WRONLY, os.FileMode(h.Mode))
+		fw, err := os.OpenFile(path.Join(dest, h.Name), os.O_CREATE|os.O_WRONLY, os.FileMode(h.Mode))
 		if err != nil {
 			return err
 		}

@@ -53,8 +53,11 @@ func route(c *config.Config) *mux.Router {
 	r.HandleFunc("/porject/list", logic.ListPorject).Methods(http.MethodGet)
 	r.HandleFunc("/goenv/add", logic.AddEnv).Methods(http.MethodPost)
 	r.HandleFunc("/goenv/list", logic.ListEnv).Methods(http.MethodGet)
-
-	r.PathPrefix("/output/").Handler(http.StripPrefix("/output/", http.FileServer(http.Dir(c.DistPath))))
+	r.HandleFunc("/task/add", logic.AddTask).Methods(http.MethodPost)
+	r.HandleFunc("/task/list", logic.ListTask).Methods(http.MethodGet)
+	r.HandleFunc("/task/start", logic.StartTask).Methods(http.MethodPost)
+	r.HandleFunc("/task/log/list", logic.ListTaskLog).Methods(http.MethodGet)
+	r.PathPrefix("/output/").Handler(http.StripPrefix("/output/", http.FileServer(http.Dir(c.DestPath))))
 
 	return r
 }
@@ -65,8 +68,8 @@ func checkDir(c *config.Config) error {
 	if err != nil {
 		return err
 	}
-	c.DistPath, _ = filepath.Abs(c.DistPath)
-	err = os.MkdirAll(c.DistPath, os.ModePerm)
+	c.DestPath, _ = filepath.Abs(c.DestPath)
+	err = os.MkdirAll(c.DestPath, os.ModePerm)
 	if err != nil {
 		return err
 	}

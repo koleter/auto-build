@@ -1,36 +1,59 @@
 package model
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Task struct {
 	Id        int64  `xorm:"pk autoincr"`
 	ProjectId int64  `xorm:"index"`
+	GoVersion int64  `xorm:"index"` // envid
 	Branch    string `xorm:"varchar(10)"`
 	MainFile  string `xorm:"varchar(20)"`  // 主文件
-	DistFile  string `xorm:"varchar(20)"`  // 目标文件
-	DistOs    string `xorm:"varchar(10)"`  // 目标系统
-	DistArch  string `xorm:"varchar(10)"`  // 目标架构
-	GoVersion int64  `xorm:"varchar(10)"`  // envid
+	DestFile  string `xorm:"varchar(20)"`  // 目标文件
+	DestOs    string `xorm:"varchar(10)"`  // 目标系统
+	DestArch  string `xorm:"varchar(10)"`  // 目标架构
 	Env       string `xorm:"varchar(255)"` // 环境变量key1=value1;key2=value2
 }
 
 type TaskLog struct {
-	Id       int64     `xorm:"pk autoincr"`
-	TaskId   int64     `xorm:"index"`
-	Success  bool      `xorm:"bool"`
-	Url      string    `xorm:"varchar(50)"`
-	CreateAt time.Time `xorm:"datetime"`
-	FinishAt time.Time `xorm:"datetime"`
+	Id          int64     `xorm:"pk autoincr"`
+	TaskId      int64     `xorm:"index"`
+	Description string    `xorm:"varchar(50)"`
+	Status      int       `xorm:"index"`
+	Url         string    `xorm:"varchar(50)"` //目标文件
+	CreateAt    time.Time `xorm:"datetime created"`
+	FinishAt    time.Time `xorm:"datetime updated"`
 }
 
-func (t *Task) Insert() error {
+func InsertTask(t *Task) error {
 	_, err := engine.InsertOne(t)
 	return err
 }
 
-func (tl *TaskLog) Insert() error {
+func InsertTaskLog(tl *TaskLog) error {
 	_, err := engine.InsertOne(tl)
 	return err
+}
+
+func UpdateTaskLog(id int64, status int) {
+	tl := &TaskLog{
+		Status: status,
+	}
+	engine.Where("id = ?", id).Cols("status").Update(tl)
+}
+
+func GetTask(id int64) (*Task, error) {
+	t := &Task{}
+	has, err := engine.Where("id = ?").Get(t)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, fmt.Errorf("couldn't find task")
+	}
+	return t, nil
 }
 
 func ListTask(projectid int64) ([]*Task, error) {

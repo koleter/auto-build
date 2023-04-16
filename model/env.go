@@ -1,7 +1,9 @@
 package model
 
+import "fmt"
+
 type GoVersion struct {
-	Id        int64  `xorm:"pk" json:"id"`
+	Id        int64  `xorm:"pk autoincr" json:"id"`
 	Version   string `xorm:"varchar(10) not null" json:"version"`
 	Os        string `xorm:"varchar(10)" json:"os"`
 	Arch      string `xorm:"varchar(10)" json:"arch"`
@@ -10,9 +12,18 @@ type GoVersion struct {
 	LocalPath string `xorm:"varchar(100)" json:"localpath"` // 本地的 go bin 上一级的绝对路径
 }
 
-func (ge *GoVersion) Insert() error {
+func InsertGoVersion(ge *GoVersion) error {
 	_, err := engine.InsertOne(ge)
 	return err
+}
+
+func GetGoVersion(id int64) (*GoVersion, error) {
+	v := &GoVersion{}
+	has, err := engine.ID(id).Get(v)
+	if !has {
+		return nil, fmt.Errorf("couldn't find record")
+	}
+	return v, err
 }
 
 func GoVersionList(version string) ([]*GoVersion, error) {
