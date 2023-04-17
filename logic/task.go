@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -185,6 +186,7 @@ func startTask(taskid, id int64) {
 	model.UpdateTaskLog(id, Running)
 	c.Wait()
 	outfilepath := path.Join(config.C.LogPath, p.Name, t.Branch, t.DestFile+".out.log")
+	os.MkdirAll(filepath.Dir(outfilepath), os.ModePerm)
 	outfile, err := os.OpenFile(outfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		log.Errorf("openfile %s error", err)
@@ -194,6 +196,7 @@ func startTask(taskid, id int64) {
 	model.UpdateTaskLogOut(id, outfilepath)
 	if stderr.Len() > 0 {
 		errfilepath := path.Join(config.C.LogPath, p.Name, t.Branch, t.DestFile+".err.log")
+		os.MkdirAll(filepath.Dir(outfilepath), os.ModePerm)
 		errfile, err := os.OpenFile(errfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 		if err != nil {
 			log.Errorf("openfile %s error", err)
