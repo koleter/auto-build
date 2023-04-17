@@ -7,6 +7,7 @@ import (
 
 type Config struct {
 	Port          int    `toml:"port"`
+	LogPath       string `toml:"log_path"`
 	GoEnvPath     string `toml:"go_env_path"`     //存放 golang 环境的
 	DefaultGoPath string `toml:"default_go_path"` //默认 go_path,主要用于 gomod
 	DestPath      string `toml:"dest_path"`       //编译完成的文件存放位置

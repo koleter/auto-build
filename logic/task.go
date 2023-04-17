@@ -1,6 +1,9 @@
 package logic
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -13,6 +16,15 @@ import (
 	"igit.58corp.com/mengfanyu03/auto-build-go/config"
 	"igit.58corp.com/mengfanyu03/auto-build-go/log"
 	"igit.58corp.com/mengfanyu03/auto-build-go/model"
+	"igit.58corp.com/mengfanyu03/auto-build-go/util"
+)
+
+// build status
+const (
+	Init = iota
+	Running
+	Success
+	Failed
 )
 
 func AddTask(wr http.ResponseWriter, r *http.Request) {
@@ -116,7 +128,7 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 	tl := &model.TaskLog{
 		Id:          time.Now().UnixMilli(),
 		TaskId:      int64(taskid),
-		Status:      0,
+		Status:      Init,
 		Description: r.FormValue("description"),
 	}
 
@@ -150,22 +162,56 @@ func startTask(taskid, id int64) {
 	}
 
 	gobin := path.Join(g.LocalPath, "bin/go")
-	log.Debug("go bin:%s", gobin)
+	log.Debugf("go bin:%s", gobin)
 
 	srcfile := path.Join(p.LocalPath, t.MainFile)
-	log.Debug("src file:%s", srcfile)
+	log.Debugf("src file:%s", srcfile)
 
 	destfile := path.Join(config.C.DestPath, p.Name, t.Branch, t.DestFile)
-	log.Debug("dest file:%s", destfile)
+	log.Debugf("dest file:%s", destfile)
 
 	c := exec.Command(gobin, "build", "-o", destfile, srcfile)
 	c.Dir = p.LocalPath
 	c.Env = append(c.Env, "GOPATH="+p.WorkSpace)
+	c.Env = append(c.Env, "GOCACHE="+os.Getenv("HOME"))
 	c.Env = append(c.Env, strings.Split(p.Env, ";")...)
 	c.Env = append(c.Env, strings.Split(t.Env, ";")...)
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
-	c.Run()
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	c.Stdout = stdout
+	c.Stderr = stderr
+	c.Start()
+	model.UpdateTaskLog(id, Running)
+	c.Wait()
+	outfilepath := path.Join(config.C.LogPath, p.Name, t.Branch, t.DestFile+".out.log")
+	outfile, err := os.OpenFile(outfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		log.Errorf("openfile %s error", err)
+		return
+	}
+	io.Copy(outfile, stdout)
+	model.UpdateTaskLogOut(id, outfilepath)
+	if stderr.Len() > 0 {
+		errfilepath := path.Join(config.C.LogPath, p.Name, t.Branch, t.DestFile+".err.log")
+		errfile, err := os.OpenFile(errfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+		if err != nil {
+			log.Errorf("openfile %s error", err)
+			return
+		}
+		io.Copy(errfile, stderr)
+		model.UpdateTaskLogErr(id, errfilepath)
+		model.UpdateTaskLog(id, Failed)
+		return
+	}
+	ip, err := util.GetLocalIp()
+	if err != nil {
+		log.Errorf("get local ip error:%s", err)
+		ip = "127.0.0.1"
+	}
+	url := fmt.Sprintf("http://%s:%d/output/%s/%s/%s", ip, config.C.Port, p.Name, t.Branch, t.DestFile)
+	model.UpdateTaskLogUrl(id, url)
+	model.UpdateTaskLog(id, Success)
 }
 
 func ListTaskLog(wr http.ResponseWriter, r *http.Request) {

@@ -63,16 +63,24 @@ func route(c *config.Config) *mux.Router {
 }
 
 func checkDir(c *config.Config) error {
-	c.DefaultGoPath, _ = filepath.Abs(c.DefaultGoPath)
-	err := os.MkdirAll(c.DefaultGoPath, os.ModePerm)
+	c.LogPath, _ = filepath.Abs(c.LogPath)
+	err := os.MkdirAll(c.LogPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
+
+	c.DefaultGoPath, _ = filepath.Abs(c.DefaultGoPath)
+	err = os.MkdirAll(c.DefaultGoPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	c.DestPath, _ = filepath.Abs(c.DestPath)
 	err = os.MkdirAll(c.DestPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
+
 	c.GoEnvPath, _ = filepath.Abs(c.GoEnvPath)
 	err = os.MkdirAll(c.GoEnvPath, os.ModePerm)
 	if err != nil {

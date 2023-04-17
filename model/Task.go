@@ -23,6 +23,8 @@ type TaskLog struct {
 	Description string    `xorm:"varchar(50)"`
 	Status      int       `xorm:"index"`
 	Url         string    `xorm:"varchar(50)"` //目标文件
+	OutFilePath string    `xorm:"varchar(50)"`
+	ErrFilePath string    `xorm:"varchar(50)"`
 	CreateAt    time.Time `xorm:"datetime created"`
 	FinishAt    time.Time `xorm:"datetime updated"`
 }
@@ -42,6 +44,27 @@ func UpdateTaskLog(id int64, status int) {
 		Status: status,
 	}
 	engine.Where("id = ?", id).Cols("status").Update(tl)
+}
+
+func UpdateTaskLogUrl(id int64, url string) {
+	tl := &TaskLog{
+		Url: url,
+	}
+	engine.Where("id = ?", id).Cols("url").Update(tl)
+}
+
+func UpdateTaskLogOut(id int64, filepath string) {
+	tl := &TaskLog{
+		OutFilePath: filepath,
+	}
+	engine.Where("id = ?", id).Cols("out_file_path").Update(tl)
+}
+
+func UpdateTaskLogErr(id int64, filepath string) {
+	tl := &TaskLog{
+		ErrFilePath: filepath,
+	}
+	engine.Where("id = ?", id).Cols("err_file_path").Update(tl)
 }
 
 func GetTask(id int64) (*Task, error) {
