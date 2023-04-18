@@ -49,14 +49,14 @@ func main() {
 func route(c *config.Config) *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/", nil)
-	r.HandleFunc("/porject/add", logic.AddPorject).Methods(http.MethodPost)
-	r.HandleFunc("/porject/list", logic.ListPorject).Methods(http.MethodGet)
-	r.HandleFunc("/goenv/add", logic.AddEnv).Methods(http.MethodPost)
-	r.HandleFunc("/goenv/list", logic.ListEnv).Methods(http.MethodGet)
-	r.HandleFunc("/task/add", logic.AddTask).Methods(http.MethodPost)
-	r.HandleFunc("/task/list", logic.ListTask).Methods(http.MethodGet)
-	r.HandleFunc("/task/start", logic.StartTask).Methods(http.MethodPost)
-	r.HandleFunc("/task/log/list", logic.ListTaskLog).Methods(http.MethodGet)
+	r.HandleFunc("/api/porject/add", logic.AddPorject).Methods(http.MethodPost)
+	r.HandleFunc("/api/porject/list", logic.ListPorject).Methods(http.MethodGet)
+	r.HandleFunc("/api/goenv/add", logic.AddEnv).Methods(http.MethodPost)
+	r.HandleFunc("/api/goenv/list", logic.ListEnv).Methods(http.MethodGet)
+	r.HandleFunc("/api/task/add", logic.AddTask).Methods(http.MethodPost)
+	r.HandleFunc("/api/task/list", logic.ListTask).Methods(http.MethodGet)
+	r.HandleFunc("/api/task/start", logic.StartTask).Methods(http.MethodPost)
+	r.HandleFunc("/api/task/log/list", logic.ListTaskLog).Methods(http.MethodGet)
 	r.PathPrefix("/output/").Handler(http.StripPrefix("/output/", http.FileServer(http.Dir(c.DestPath))))
 
 	return r

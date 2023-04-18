@@ -93,8 +93,7 @@ func ListTask(wr http.ResponseWriter, r *http.Request) {
 	projectid, err := strconv.Atoi(r.FormValue("project_id"))
 	if err != nil {
 		log.Errorf("check param error:%s", err)
-		writeError(wr, "params error", err.Error())
-		return
+		projectid = 0
 	}
 	ts, err := model.ListTask(int64(projectid))
 	if err != nil {
@@ -174,7 +173,7 @@ func startTask(taskid, id int64) {
 	c := exec.Command(gobin, "build", "-o", destfile, srcfile)
 	c.Dir = p.LocalPath
 	c.Env = append(c.Env, "GOPATH="+p.WorkSpace)
-	c.Env = append(c.Env, "GOCACHE="+os.Getenv("HOME"))
+	c.Env = append(c.Env, "GOCACHE="+path.Join(p.WorkSpace, ".cache/"))
 	c.Env = append(c.Env, strings.Split(p.Env, ";")...)
 	c.Env = append(c.Env, strings.Split(t.Env, ";")...)
 
@@ -192,6 +191,7 @@ func startTask(taskid, id int64) {
 		log.Errorf("openfile %s error", err)
 		return
 	}
+	log.Debug("task log id:%d out file:%s", id, outfilepath)
 	io.Copy(outfile, stdout)
 	model.UpdateTaskLogOut(id, outfilepath)
 	if stderr.Len() > 0 {
@@ -202,6 +202,7 @@ func startTask(taskid, id int64) {
 			log.Errorf("openfile %s error", err)
 			return
 		}
+		log.Debug("task log id:%d err file:%s", id, errfilepath)
 		io.Copy(errfile, stderr)
 		model.UpdateTaskLogErr(id, errfilepath)
 		model.UpdateTaskLog(id, Failed)
@@ -213,16 +214,17 @@ func startTask(taskid, id int64) {
 		ip = "127.0.0.1"
 	}
 	url := fmt.Sprintf("http://%s:%d/output/%s/%s/%s", ip, config.C.Port, p.Name, t.Branch, t.DestFile)
+	log.Debug("task log id:%d file url:%s", id, url)
 	model.UpdateTaskLogUrl(id, url)
 	model.UpdateTaskLog(id, Success)
+	log.Infof("task log id:%d build success")
 }
 
 func ListTaskLog(wr http.ResponseWriter, r *http.Request) {
 	taskid, err := strconv.Atoi(r.FormValue("task_id"))
 	if err != nil {
 		log.Errorf("check param error:%s", err)
-		writeError(wr, "params error", err.Error())
-		return
+		taskid = 0
 	}
 	ts, err := model.ListTaskLog(int64(taskid))
 	if err != nil {

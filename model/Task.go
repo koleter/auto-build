@@ -6,27 +6,27 @@ import (
 )
 
 type Task struct {
-	Id        int64  `xorm:"pk autoincr"`
-	ProjectId int64  `xorm:"index"`
-	GoVersion int64  `xorm:"index"` // envid
-	Branch    string `xorm:"varchar(10)"`
-	MainFile  string `xorm:"varchar(20)"`  // 主文件
-	DestFile  string `xorm:"varchar(20)"`  // 目标文件
-	DestOs    string `xorm:"varchar(10)"`  // 目标系统
-	DestArch  string `xorm:"varchar(10)"`  // 目标架构
-	Env       string `xorm:"varchar(255)"` // 环境变量key1=value1;key2=value2
+	Id        int64  `xorm:"pk autoincr" json:"id"`
+	ProjectId int64  `xorm:"index" json:"-"`
+	GoVersion int64  `xorm:"index" json:"-"` // envid
+	Branch    string `xorm:"varchar(10)" json:"branch"`
+	MainFile  string `xorm:"varchar(20)" json:"main_file"` // 主文件
+	DestFile  string `xorm:"varchar(20)" json:"dest_file"` // 目标文件
+	DestOs    string `xorm:"varchar(10)" json:"dest_os"`   // 目标系统
+	DestArch  string `xorm:"varchar(10)" json:"dest_arch"` // 目标架构
+	Env       string `xorm:"varchar(255)" json:"env"`      // 环境变量key1=value1;key2=value2
 }
 
 type TaskLog struct {
-	Id          int64     `xorm:"pk autoincr"`
-	TaskId      int64     `xorm:"index"`
-	Description string    `xorm:"varchar(50)"`
-	Status      int       `xorm:"index"`
-	Url         string    `xorm:"varchar(50)"` //目标文件
-	OutFilePath string    `xorm:"varchar(50)"`
-	ErrFilePath string    `xorm:"varchar(50)"`
-	CreateAt    time.Time `xorm:"datetime created"`
-	FinishAt    time.Time `xorm:"datetime updated"`
+	Id          int64     `xorm:"pk autoincr" json:"id"`
+	TaskId      int64     `xorm:"index" json:"-"`
+	Description string    `xorm:"varchar(50)" json:"description"`
+	Status      int       `xorm:"index" json:"status"`
+	Url         string    `xorm:"varchar(50)" json:"url"` //目标文件
+	OutFilePath string    `xorm:"varchar(50)" json:"out_file_path"`
+	ErrFilePath string    `xorm:"varchar(50)" json:"err_file_path"`
+	CreateAt    time.Time `xorm:"datetime created" json:"create_at"`
+	FinishAt    time.Time `xorm:"datetime updated" json:"finish_at"`
 }
 
 func InsertTask(t *Task) error {
@@ -81,12 +81,20 @@ func GetTask(id int64) (*Task, error) {
 
 func ListTask(projectid int64) ([]*Task, error) {
 	ts := make([]*Task, 0)
-	err := engine.Where("project_id = ?", projectid).Find(&ts)
+	s := engine.NewSession()
+	if projectid > 0 {
+		s.Where("project_id = ?", projectid)
+	}
+	err := s.Find(&ts)
 	return ts, err
 }
 
 func ListTaskLog(taskid int64) ([]*TaskLog, error) {
 	tls := make([]*TaskLog, 0)
-	err := engine.Where("task_id = ?", taskid).Find(&tls)
+	s := engine.NewSession()
+	if taskid > 0 {
+		s.Where("task_id = ?", taskid)
+	}
+	err := s.Find(&tls)
 	return tls, err
 }
