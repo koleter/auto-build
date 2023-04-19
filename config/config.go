@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/BurntSushi/toml"
-	"igit.58corp.com/mengfanyu03/auto-build-go/log"
+	"github.com/hash-rabbit/auto-build/log"
 )
 
 type Config struct {
@@ -12,6 +12,7 @@ type Config struct {
 	DefaultGoPath string `toml:"default_go_path"` //默认 go_path,主要用于 gomod
 	DestPath      string `toml:"dest_path"`       //编译完成的文件存放位置
 	SqlFile       string `toml:"sql_file"`
+	WebPath       string `toml:"web_path"` //前端路径
 }
 
 var C *Config

@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"igit.58corp.com/mengfanyu03/auto-build-go/config"
-	"igit.58corp.com/mengfanyu03/auto-build-go/log"
-	"igit.58corp.com/mengfanyu03/auto-build-go/model"
-	"igit.58corp.com/mengfanyu03/auto-build-go/util"
+	"github.com/hash-rabbit/auto-build/config"
+	"github.com/hash-rabbit/auto-build/log"
+	"github.com/hash-rabbit/auto-build/model"
+	"github.com/hash-rabbit/auto-build/util"
 )
 
 // build status
@@ -172,6 +172,7 @@ func startTask(taskid, id int64) {
 
 	c := exec.Command(gobin, "build", "-o", destfile, srcfile)
 	c.Dir = p.LocalPath
+	c.Env = append(c.Env, "GOBIN="+g.LocalPath)
 	c.Env = append(c.Env, "GOPATH="+p.WorkSpace)
 	c.Env = append(c.Env, "GOCACHE="+path.Join(p.WorkSpace, ".cache/"))
 	c.Env = append(c.Env, strings.Split(p.Env, ";")...)

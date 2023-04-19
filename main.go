@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"igit.58corp.com/mengfanyu03/auto-build-go/config"
-	"igit.58corp.com/mengfanyu03/auto-build-go/log"
-	"igit.58corp.com/mengfanyu03/auto-build-go/logic"
-	"igit.58corp.com/mengfanyu03/auto-build-go/model"
+	"github.com/hash-rabbit/auto-build/config"
+	"github.com/hash-rabbit/auto-build/log"
+	"github.com/hash-rabbit/auto-build/logic"
+	"github.com/hash-rabbit/auto-build/model"
 )
 
 func main() {
@@ -48,17 +48,18 @@ func main() {
 
 func route(c *config.Config) *mux.Router {
 	r := mux.NewRouter()
-	r.HandleFunc("/", nil)
-	r.HandleFunc("/api/porject/add", logic.AddPorject).Methods(http.MethodPost)
-	r.HandleFunc("/api/porject/list", logic.ListPorject).Methods(http.MethodGet)
-	r.HandleFunc("/api/goenv/add", logic.AddEnv).Methods(http.MethodPost)
+	r.HandleFunc("/", logic.Index).Methods(http.MethodGet)
+	r.HandleFunc("/api/goenv/add", logic.AddEnv).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/goenv/list", logic.ListEnv).Methods(http.MethodGet)
-	r.HandleFunc("/api/task/add", logic.AddTask).Methods(http.MethodPost)
+	r.HandleFunc("/api/porject/add", logic.AddPorject).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/api/porject/list", logic.ListPorject).Methods(http.MethodGet)
+	r.HandleFunc("/api/task/add", logic.AddTask).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/task/list", logic.ListTask).Methods(http.MethodGet)
-	r.HandleFunc("/api/task/start", logic.StartTask).Methods(http.MethodPost)
+	r.HandleFunc("/api/task/start", logic.StartTask).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/task/log/list", logic.ListTaskLog).Methods(http.MethodGet)
 	r.PathPrefix("/output/").Handler(http.StripPrefix("/output/", http.FileServer(http.Dir(c.DestPath))))
-
+	r.PathPrefix("/web/").Handler(http.StripPrefix("/web/", http.FileServer(http.Dir(c.WebPath))))
+	r.Use(mux.CORSMethodMiddleware(r))
 	return r
 }
 
@@ -86,5 +87,7 @@ func checkDir(c *config.Config) error {
 	if err != nil {
 		return err
 	}
+
+	c.WebPath, _ = filepath.Abs(c.WebPath)
 	return nil
 }

@@ -8,9 +8,9 @@ import (
 	"github.com/go-git/go-git/v5"
 	gitc "github.com/go-git/go-git/v5/config"
 	gith "github.com/go-git/go-git/v5/plumbing/transport/http"
-	"igit.58corp.com/mengfanyu03/auto-build-go/config"
-	"igit.58corp.com/mengfanyu03/auto-build-go/log"
-	"igit.58corp.com/mengfanyu03/auto-build-go/model"
+	"github.com/hash-rabbit/auto-build/config"
+	"github.com/hash-rabbit/auto-build/log"
+	"github.com/hash-rabbit/auto-build/model"
 )
 
 var defaultRemoteName = "build"

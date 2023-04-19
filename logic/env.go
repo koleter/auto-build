@@ -13,9 +13,9 @@ import (
 	"runtime"
 	"strings"
 
-	"igit.58corp.com/mengfanyu03/auto-build-go/config"
-	"igit.58corp.com/mengfanyu03/auto-build-go/log"
-	"igit.58corp.com/mengfanyu03/auto-build-go/model"
+	"github.com/hash-rabbit/auto-build/config"
+	"github.com/hash-rabbit/auto-build/log"
+	"github.com/hash-rabbit/auto-build/model"
 )
 
 var GoPkgUrlTemp string
@@ -35,7 +35,7 @@ func AddEnv(wr http.ResponseWriter, r *http.Request) {
 
 	go addEnv(param["url"].(string), param["sha2"].(string))
 
-	writeSuccess(wr, "start add go env")
+	writeSuccess(wr, "start download go env...")
 }
 
 func addEnv(url, sha2 string) {

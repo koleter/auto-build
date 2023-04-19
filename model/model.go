@@ -1,8 +1,8 @@
 package model
 
 import (
+	"github.com/hash-rabbit/auto-build/log"
 	_ "github.com/mattn/go-sqlite3"
-	"igit.58corp.com/mengfanyu03/auto-build-go/log"
 	"xorm.io/xorm"
 )
 

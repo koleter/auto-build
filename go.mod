@@ -1,4 +1,4 @@
-module igit.58corp.com/mengfanyu03/auto-build-go
+module github.com/hash-rabbit/auto-build
 
 go 1.19
 

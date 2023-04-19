@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"igit.58corp.com/mengfanyu03/auto-build-go/log"
+	"github.com/hash-rabbit/auto-build/log"
 )
 
 func checkParam(r *http.Request) (map[string]interface{}, error) {
