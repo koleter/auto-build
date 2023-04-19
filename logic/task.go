@@ -144,7 +144,7 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 
 	go startTask(tl.TaskId, tl.Id)
 
-	writeSuccess(wr, "start success")
+	writeSuccess(wr, "start building...")
 }
 
 func startTask(taskid, id int64) {
@@ -220,11 +220,11 @@ func startTask(taskid, id int64) {
 		ip = "127.0.0.1"
 	}
 	url := fmt.Sprintf("http://%s:%d/output/%s/%s/%s", ip, config.C.Port, p.Name, t.Branch, t.DestFile)
-	log.Debug("task log id:%d file url:%s", id, url)
+	log.Debugf("task log id:%d file url:%s", id, url)
 	model.UpdateTaskLogUrl(id, url)
 
 	model.UpdateTaskLog(id, Success)
-	log.Infof("task log id:%d build success")
+	log.Infof("task log id:%d build success", id)
 }
 
 func ListTaskLog(wr http.ResponseWriter, r *http.Request) {
