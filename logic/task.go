@@ -105,11 +105,16 @@ func ListTask(wr http.ResponseWriter, r *http.Request) {
 }
 
 func StartTask(wr http.ResponseWriter, r *http.Request) {
-	taskid, err := strconv.Atoi(r.FormValue("task_id"))
+	param, err := checkParam(r)
 	if err != nil {
 		log.Errorf("check param error:%s", err)
 		writeError(wr, "params error", err.Error())
 		return
+	}
+
+	var taskid int64
+	if param["task_id"] != nil {
+		taskid = int64(param["task_id"].(float64))
 	}
 
 	ts, err := model.ListTask(int64(taskid))
@@ -192,7 +197,7 @@ func startTask(taskid, id int64) {
 		log.Errorf("openfile %s error", err)
 		return
 	}
-	log.Debug("task log id:%d out file:%s", id, outfilepath)
+	log.Debugf("task log id:%d out file:%s", id, outfilepath)
 	io.Copy(outfile, stdout)
 	model.UpdateTaskLogOut(id, outfilepath)
 	if stderr.Len() > 0 {
@@ -203,7 +208,7 @@ func startTask(taskid, id int64) {
 			log.Errorf("openfile %s error", err)
 			return
 		}
-		log.Debug("task log id:%d err file:%s", id, errfilepath)
+		log.Debugf("task log id:%d err file:%s", id, errfilepath)
 		io.Copy(errfile, stderr)
 		model.UpdateTaskLogErr(id, errfilepath)
 		model.UpdateTaskLog(id, Failed)

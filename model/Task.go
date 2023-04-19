@@ -95,6 +95,6 @@ func ListTaskLog(taskid int64) ([]*TaskLog, error) {
 	if taskid > 0 {
 		s.Where("task_id = ?", taskid)
 	}
-	err := s.Find(&tls)
+	err := s.Desc("create_at").Find(&tls)
 	return tls, err
 }
