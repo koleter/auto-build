@@ -1,9 +1,7 @@
 package logic
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -183,37 +181,39 @@ func startTask(taskid, id int64) {
 	c.Env = append(c.Env, strings.Split(p.Env, ";")...)
 	c.Env = append(c.Env, strings.Split(t.Env, ";")...)
 
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-	c.Stdout = stdout
-	c.Stderr = stderr
-	c.Start()
-	model.UpdateTaskLog(id, Running)
-	c.Wait()
-	outfilepath := path.Join(config.C.LogPath, p.Name, t.Branch, t.DestFile+".out.log")
+	outfilename := fmt.Sprintf("%s.%d.out.log", t.DestFile, id)
+	outfilepath := path.Join(config.C.LogPath, p.Name, t.Branch, outfilename)
 	os.MkdirAll(filepath.Dir(outfilepath), os.ModePerm)
 	outfile, err := os.OpenFile(outfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		log.Errorf("openfile %s error", err)
 		return
 	}
-	log.Debugf("task log id:%d out file:%s", id, outfilepath)
-	io.Copy(outfile, stdout)
 	model.UpdateTaskLogOut(id, outfilepath)
-	if stderr.Len() > 0 {
-		errfilepath := path.Join(config.C.LogPath, p.Name, t.Branch, t.DestFile+".err.log")
-		os.MkdirAll(filepath.Dir(outfilepath), os.ModePerm)
-		errfile, err := os.OpenFile(errfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
-		if err != nil {
-			log.Errorf("openfile %s error", err)
-			return
-		}
-		log.Debugf("task log id:%d err file:%s", id, errfilepath)
-		io.Copy(errfile, stderr)
-		model.UpdateTaskLogErr(id, errfilepath)
+	log.Debugf("task log id:%d out file:%s", id, outfilepath)
+
+	errfilename := fmt.Sprintf("%s.%d.err.log", t.DestFile, id)
+	errfilepath := path.Join(config.C.LogPath, p.Name, t.Branch, errfilename)
+	os.MkdirAll(filepath.Dir(outfilepath), os.ModePerm)
+	errfile, err := os.OpenFile(errfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		log.Errorf("openfile %s error", err)
+		return
+	}
+	model.UpdateTaskLogErr(id, errfilepath)
+	log.Debugf("task log id:%d err file:%s", id, errfilepath)
+
+	c.Stdout = outfile
+	c.Stderr = errfile
+	c.Start()
+	model.UpdateTaskLog(id, Running)
+
+	c.Wait()
+	if c.Err != nil {
 		model.UpdateTaskLog(id, Failed)
 		return
 	}
+
 	ip, err := util.GetLocalIp()
 	if err != nil {
 		log.Errorf("get local ip error:%s", err)
@@ -222,6 +222,7 @@ func startTask(taskid, id int64) {
 	url := fmt.Sprintf("http://%s:%d/output/%s/%s/%s", ip, config.C.Port, p.Name, t.Branch, t.DestFile)
 	log.Debug("task log id:%d file url:%s", id, url)
 	model.UpdateTaskLogUrl(id, url)
+
 	model.UpdateTaskLog(id, Success)
 	log.Infof("task log id:%d build success")
 }
