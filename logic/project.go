@@ -112,3 +112,50 @@ func ListPorject(wr http.ResponseWriter, r *http.Request) {
 	}
 	writeJson(wr, ps)
 }
+
+func PullPorject(wr http.ResponseWriter, r *http.Request) {
+	param, err := checkParam(r)
+	if err != nil {
+		log.Errorf("check param error:%s", err)
+		writeError(wr, "param error", err.Error())
+		return
+	}
+
+	var projectId int64
+	if param["project_id"] != nil {
+		projectId = int64(param["project_id"].(float64))
+	}
+
+	p, err := model.GetProject(projectId)
+	if err != nil {
+		log.Errorf("select param error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	repo, err := git.PlainOpen(p.LocalPath)
+	if err != nil {
+		log.Errorf("open project error:%s", err)
+		writeError(wr, "git error", err.Error())
+		return
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		log.Errorf("open project worktree error:%s", err)
+		writeError(wr, "git error", err.Error())
+		return
+	}
+
+	err = w.Pull(&git.PullOptions{
+		RemoteName: defaultRemoteName,
+		Auth:       &gith.BasicAuth{Password: p.Token, Username: "auto-build"},
+	})
+	if err != nil {
+		log.Errorf("git pull error:%s", err)
+		writeError(wr, "git error", err.Error())
+		return
+	}
+
+	writeSuccess(wr, "git pull success")
+}
