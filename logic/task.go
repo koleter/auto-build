@@ -178,6 +178,8 @@ func startTask(taskid, id int64) {
 	c.Env = append(c.Env, "GOBIN="+g.LocalPath)
 	c.Env = append(c.Env, "GOPATH="+p.WorkSpace)
 	c.Env = append(c.Env, "GOCACHE="+path.Join(p.WorkSpace, ".cache/"))
+	c.Env = append(c.Env, "GOOS="+t.DestOs)
+	c.Env = append(c.Env, "GOARCH="+t.DestArch)
 	c.Env = append(c.Env, strings.Split(p.Env, ";")...)
 	c.Env = append(c.Env, strings.Split(t.Env, ";")...)
 
