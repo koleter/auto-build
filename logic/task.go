@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	gith "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/hash-rabbit/auto-build/config"
 	"github.com/hash-rabbit/auto-build/log"
 	"github.com/hash-rabbit/auto-build/model"
@@ -161,6 +164,39 @@ func startTask(taskid, id int64) {
 	g, err := model.GetGoVersion(t.GoVersion)
 	if err != nil {
 		log.Errorf("get version error:%s", err)
+		return
+	}
+
+	r, err := git.PlainOpen(p.LocalPath)
+	if err != nil {
+		log.Errorf("git open error:%s", err)
+		return
+	}
+	w, err := r.Worktree()
+	if err != nil {
+		log.Errorf("git open worktree error:%s", err)
+		return
+	}
+	err = w.Clean(&git.CleanOptions{
+		Dir: true,
+	})
+	if err != nil {
+		log.Errorf("git clean error:%s", err)
+		return
+	}
+	err = w.Pull(&git.PullOptions{
+		RemoteName: defaultRemoteName,
+		Auth:       &gith.BasicAuth{Password: p.Token, Username: "auto-build"},
+	})
+	if err != nil {
+		log.Errorf("git pull error:%s", err)
+		return
+	}
+	err = w.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.ReferenceName(t.Branch),
+	})
+	if err != nil {
+		log.Errorf("git checkout %s error:%s", t.Branch, err)
 		return
 	}
 
