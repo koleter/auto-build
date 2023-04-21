@@ -172,11 +172,13 @@ func startTask(taskid, id int64) {
 		log.Errorf("git open error:%s", err)
 		return
 	}
+
 	w, err := r.Worktree()
 	if err != nil {
 		log.Errorf("git open worktree error:%s", err)
 		return
 	}
+
 	err = w.Clean(&git.CleanOptions{
 		Dir: true,
 	})
@@ -184,16 +186,20 @@ func startTask(taskid, id int64) {
 		log.Errorf("git clean error:%s", err)
 		return
 	}
+
 	err = w.Pull(&git.PullOptions{
 		RemoteName: defaultRemoteName,
 		Auth:       &gith.BasicAuth{Password: p.Token, Username: "auto-build"},
 	})
-	if err != nil {
+	if err == git.NoErrAlreadyUpToDate {
+		log.Debugf("git pull err:%s", err)
+	} else if err != nil {
 		log.Errorf("git pull error:%s", err)
 		return
 	}
+
 	err = w.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(t.Branch),
+		Branch: plumbing.NewBranchReferenceName(t.Branch),
 	})
 	if err != nil {
 		log.Errorf("git checkout %s error:%s", t.Branch, err)
