@@ -46,6 +46,13 @@ func UpdateTaskLog(id int64, status int) {
 	engine.Where("id = ?", id).Cols("status").Update(tl)
 }
 
+func UpdateTaskLogDescription(id int64, desc string) {
+	tl := &TaskLog{
+		Description: desc,
+	}
+	engine.Where("id = ?", id).Cols("description").Update(tl)
+}
+
 func UpdateTaskLogUrl(id int64, url string) {
 	tl := &TaskLog{
 		Url: url,

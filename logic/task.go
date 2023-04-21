@@ -200,6 +200,18 @@ func startTask(taskid, id int64) {
 		return
 	}
 
+	ref, err := r.Reference(plumbing.NewBranchReferenceName(t.Branch), false)
+	if err != nil {
+		log.Errorf("git get ref %s error:%s", t.Branch, err)
+		return
+	}
+	com, err := r.CommitObject(ref.Hash())
+	if err != nil {
+		log.Errorf("git get commit %s error:%s", t.Branch, err)
+		return
+	}
+	model.UpdateTaskLogDescription(id, com.Message)
+
 	gobin := path.Join(g.LocalPath, "bin/go")
 	log.Debugf("go bin:%s", gobin)
 
