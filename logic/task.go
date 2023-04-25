@@ -12,9 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	gith "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/hash-rabbit/auto-build/config"
 	"github.com/hash-rabbit/auto-build/log"
 	"github.com/hash-rabbit/auto-build/model"
@@ -30,57 +27,65 @@ const (
 )
 
 func AddTask(wr http.ResponseWriter, r *http.Request) {
-	param, err := checkParam(r)
+	t := new(model.Task)
+
+	err := ParseParam(r, t)
 	if err != nil {
 		log.Errorf("check param error:%s", err)
 		writeError(wr, "params error", err.Error())
 		return
 	}
+	log.Debugf("recv:%+v", t)
 
-	projectId := int64(param["project_id"].(float64))
-	if _, err := model.GetProject(projectId); err != nil {
+	_, err = model.GetProject(t.ProjectId)
+	if err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
 		return
 	}
 
-	go_ver_id := int64(param["go_version_id"].(float64))
-	if _, err := model.GetGoVersion(go_ver_id); err != nil {
+	if _, err := model.GetGoVersion(t.GoVersion); err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
 		return
 	}
 
-	if len(param["branch"].(string)) == 0 || len(param["main_file"].(string)) == 0 || len(param["dest_file"].(string)) == 0 {
+	if len(t.Branch) == 0 {
 		log.Errorf("check param error")
 		writeError(wr, "params error", "param error")
 		return
 	}
 
-	destos := runtime.GOOS
-	if param["dest_os"] != nil && len(param["dest_os"].(string)) > 0 {
-		destos = param["dest_os"].(string)
-	}
-	destArch := runtime.GOARCH
-	if param["dest_arch"] != nil && len(param["dest_arch"].(string)) > 0 {
-		destArch = param["dest_arch"].(string)
+	if len(t.MainFile) == 0 || len(t.DestFile) == 0 {
+		log.Errorf("check param error")
+		writeError(wr, "params error", "param error")
+		return
 	}
 
-	env := ""
-	if param["env"] != nil {
-		env = param["env"].(string)
+	switch t.DestOs {
+	case "":
+		t.DestOs = runtime.GOOS
+	case "linux":
+	case "windows":
+	case "darwin":
+	default:
+		log.Errorf("check GOOS error")
+		writeError(wr, "params error", "GOOS error")
+		return
 	}
 
-	t := &model.Task{
-		ProjectId: projectId,
-		GoVersion: go_ver_id,
-		Branch:    param["branch"].(string),
-		MainFile:  param["main_file"].(string),
-		DestFile:  param["dest_file"].(string),
-		DestOs:    destos,
-		DestArch:  destArch,
-		Env:       env,
+	switch t.DestArch {
+	case "":
+		t.DestArch = runtime.GOARCH
+	case "386":
+	case "amd64":
+	case "arm64":
+	default:
+		log.Errorf("check GOARCH error")
+		writeError(wr, "params error", "GOARCH error")
+		return
 	}
+
 	err = model.InsertTask(t)
 	if err != nil {
 		log.Errorf("insert sql error:%s", err)
@@ -151,72 +156,105 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 }
 
 func startTask(taskid, id int64) {
+	status := Success
+	defer model.UpdateTaskLog(id, status)
+
 	t, err := model.GetTask(taskid)
 	if err != nil {
 		log.Error("get task error:%s", err)
+		status = Failed
 		return
 	}
 	p, err := model.GetProject(t.ProjectId)
 	if err != nil {
 		log.Errorf("get project error:%s", err)
+		status = Failed
 		return
 	}
 	g, err := model.GetGoVersion(t.GoVersion)
 	if err != nil {
 		log.Errorf("get version error:%s", err)
+		status = Failed
 		return
 	}
 
-	r, err := git.PlainOpen(p.LocalPath)
+	err = util.Pull(p.LocalPath, defaultRemoteName, t.Branch)
 	if err != nil {
-		log.Errorf("git open error:%s", err)
+		log.Errorf("get pull error:%s", err)
+		status = Failed
 		return
 	}
 
-	w, err := r.Worktree()
+	err = util.Checkout(p.LocalPath, t.Branch)
 	if err != nil {
-		log.Errorf("git open worktree error:%s", err)
+		log.Errorf("get pull error:%s", err)
+		status = Failed
 		return
 	}
 
-	err = w.Clean(&git.CleanOptions{
-		Dir: true,
-	})
+	ls, err := util.GitLog(p.LocalPath, 1)
 	if err != nil {
-		log.Errorf("git clean error:%s", err)
+		log.Errorf("get log error:%s", err)
+		status = Failed
 		return
 	}
+	if len(ls) < 1 {
+		log.Errorf("get log 0")
+		status = Failed
+		return
+	}
+	// r, err := git.PlainOpen(p.LocalPath)
+	// if err != nil {
+	// 	log.Errorf("git open error:%s", err)
+	// 	return
+	// }
 
-	err = w.Pull(&git.PullOptions{
-		RemoteName: defaultRemoteName,
-		Auth:       &gith.BasicAuth{Password: p.Token, Username: "auto-build"},
-	})
-	if err == git.NoErrAlreadyUpToDate {
-		log.Debugf("git pull err:%s", err)
-	} else if err != nil {
-		log.Errorf("git pull error:%s", err)
-		return
-	}
+	// w, err := r.Worktree()
+	// if err != nil {
+	// 	log.Errorf("git open worktree error:%s", err)
+	// 	return
+	// }
 
-	err = w.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.NewBranchReferenceName(t.Branch),
-	})
-	if err != nil {
-		log.Errorf("git checkout %s error:%s", t.Branch, err)
-		return
-	}
+	// err = w.Clean(&git.CleanOptions{
+	// 	Dir: true,
+	// })
+	// if err != nil {
+	// 	log.Errorf("git clean error:%s", err)
+	// 	return
+	// }
 
-	ref, err := r.Reference(plumbing.NewBranchReferenceName(t.Branch), false)
-	if err != nil {
-		log.Errorf("git get ref %s error:%s", t.Branch, err)
-		return
-	}
-	com, err := r.CommitObject(ref.Hash())
-	if err != nil {
-		log.Errorf("git get commit %s error:%s", t.Branch, err)
-		return
-	}
-	model.UpdateTaskLogDescription(id, com.Message)
+	// err = w.Pull(&git.PullOptions{
+	// 	RemoteName:    defaultRemoteName,
+	// 	Auth:          &gith.BasicAuth{Password: p.Token, Username: "auto-build"},
+	// 	ReferenceName: plumbing.NewBranchReferenceName(t.Branch),
+	// 	SingleBranch:  true,
+	// })
+	// if err == git.NoErrAlreadyUpToDate {
+	// 	log.Debugf("git pull err:%s", err)
+	// } else if err != nil {
+	// 	log.Errorf("git pull error:%s", err)
+	// 	return
+	// }
+
+	// err = w.Checkout(&git.CheckoutOptions{
+	// 	Branch: plumbing.NewBranchReferenceName(t.Branch),
+	// })
+	// if err != nil {
+	// 	log.Errorf("git checkout %s error:%s", t.Branch, err)
+	// 	return
+	// }
+
+	// ref, err := r.Reference(plumbing.NewBranchReferenceName(t.Branch), false)
+	// if err != nil {
+	// 	log.Errorf("git get ref %s error:%s", t.Branch, err)
+	// 	return
+	// }
+	// com, err := r.CommitObject(ref.Hash())
+	// if err != nil {
+	// 	log.Errorf("git get commit %s error:%s", t.Branch, err)
+	// 	return
+	// }
+	model.UpdateTaskLogDescription(id, ls[0].Commit)
 
 	gobin := path.Join(g.LocalPath, "bin/go")
 	log.Debugf("go bin:%s", gobin)
@@ -243,6 +281,7 @@ func startTask(taskid, id int64) {
 	outfile, err := os.OpenFile(outfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		log.Errorf("openfile %s error", err)
+		status = Failed
 		return
 	}
 	model.UpdateTaskLogOut(id, outfilepath)
@@ -254,6 +293,7 @@ func startTask(taskid, id int64) {
 	errfile, err := os.OpenFile(errfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		log.Errorf("openfile %s error", err)
+		status = Failed
 		return
 	}
 	model.UpdateTaskLogErr(id, errfilepath)
@@ -266,7 +306,7 @@ func startTask(taskid, id int64) {
 
 	c.Wait()
 	if c.Err != nil {
-		model.UpdateTaskLog(id, Failed)
+		status = Failed
 		return
 	}
 
@@ -279,7 +319,6 @@ func startTask(taskid, id int64) {
 	log.Debugf("task log id:%d file url:%s", id, url)
 	model.UpdateTaskLogUrl(id, url)
 
-	model.UpdateTaskLog(id, Success)
 	log.Infof("task log id:%d build success", id)
 }
 

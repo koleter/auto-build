@@ -1,9 +1,20 @@
 package model
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hash-rabbit/snowflake"
+)
+
+var goenvNodeId int64 = 1
+var goenvNode *snowflake.Node
+
+func init() {
+	goenvNode, _ = snowflake.NewNode(goenvNodeId)
+}
 
 type GoVersion struct {
-	Id        int64  `xorm:"pk autoincr" json:"id"`
+	Id        int64  `xorm:"pk" json:"id"` //TODO:因为前端精度丢失问题,暂将 id 转为 string
 	Version   string `xorm:"varchar(10) not null" json:"version"`
 	Os        string `xorm:"varchar(10)" json:"os"`
 	Arch      string `xorm:"varchar(10)" json:"arch"`
@@ -13,6 +24,7 @@ type GoVersion struct {
 }
 
 func InsertGoVersion(ge *GoVersion) error {
+	ge.Id = goenvNode.Generate().Int64()
 	_, err := engine.InsertOne(ge)
 	return err
 }

@@ -5,4 +5,5 @@ goenv/
 buildlog/
 workspace/
 
+clean.sh
 *.db

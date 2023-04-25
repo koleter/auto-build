@@ -60,7 +60,8 @@ func TestBranch(t *testing.T) {
 		From: h,
 	})
 
-	// w, _ := r.Worktree()
+	w, _ := r.Worktree()
+	w.Pull(&git.PullOptions{})
 	// w.Clean(&git.CleanOptions{})
 	// w.Checkout(&git.CheckoutOptions{
 	// 	Branch: plumbing.ReferenceName("master"),

@@ -3,12 +3,24 @@ package model
 import (
 	"fmt"
 	"time"
+
+	"github.com/hash-rabbit/snowflake"
 )
 
+var taskNodeId int64 = 3
+var taskLogNodeId int64 = 4
+var taskNode *snowflake.Node
+var taskLogNode *snowflake.Node
+
+func init() {
+	taskNode, _ = snowflake.NewNode(taskNodeId)
+	taskLogNode, _ = snowflake.NewNode(taskLogNodeId)
+}
+
 type Task struct {
-	Id        int64  `xorm:"pk autoincr" json:"id"`
-	ProjectId int64  `xorm:"index" json:"-"`
-	GoVersion int64  `xorm:"index" json:"-"` // envid
+	Id        int64  `xorm:"pk" json:"id"`
+	ProjectId int64  `xorm:"index" json:"project_id"`
+	GoVersion int64  `xorm:"index" json:"go_version_id"` // envid
 	Branch    string `xorm:"varchar(10)" json:"branch"`
 	MainFile  string `xorm:"varchar(20)" json:"main_file"` // 主文件
 	DestFile  string `xorm:"varchar(20)" json:"dest_file"` // 目标文件
@@ -18,8 +30,8 @@ type Task struct {
 }
 
 type TaskLog struct {
-	Id          int64     `xorm:"pk autoincr" json:"id"`
-	TaskId      int64     `xorm:"index" json:"-"`
+	Id          int64     `xorm:"pk" json:"id"`
+	TaskId      int64     `xorm:"index" json:"task_id"`
 	Description string    `xorm:"varchar(50)" json:"description"`
 	Status      int       `xorm:"index" json:"status"`
 	Url         string    `xorm:"varchar(50)" json:"url"` //目标文件
@@ -30,11 +42,13 @@ type TaskLog struct {
 }
 
 func InsertTask(t *Task) error {
+	t.Id = taskNode.Generate().Int64()
 	_, err := engine.InsertOne(t)
 	return err
 }
 
 func InsertTaskLog(tl *TaskLog) error {
+	tl.Id = taskLogNode.Generate().Int64()
 	_, err := engine.InsertOne(tl)
 	return err
 }
@@ -86,11 +100,11 @@ func GetTask(id int64) (*Task, error) {
 	return t, nil
 }
 
-func ListTask(projectid int64) ([]*Task, error) {
+func ListTask(taskId int64) ([]*Task, error) {
 	ts := make([]*Task, 0)
 	s := engine.NewSession()
-	if projectid > 0 {
-		s.Where("project_id = ?", projectid)
+	if taskId > 0 {
+		s.Where("id = ?", taskId)
 	}
 	err := s.Find(&ts)
 	return ts, err

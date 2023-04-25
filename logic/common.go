@@ -23,6 +23,21 @@ func checkParam(r *http.Request) (map[string]interface{}, error) {
 	return param, nil
 }
 
+func ParseParam(r *http.Request, v interface{}) error {
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Errorf("read body error:%s", err)
+		return err
+	}
+
+	err = json.Unmarshal(data, &v)
+	if err != nil {
+		log.Errorf("json unmarshal error:%s", err)
+		return err
+	}
+	return nil
+}
+
 type ResponseInfo struct {
 	Code string      `json:"code"`
 	Msg  string      `json:"msg"`
@@ -47,6 +62,7 @@ func writeResponseInfo(w http.ResponseWriter, code, msg string, data interface{}
 		write500(w, err)
 		return
 	}
+	log.Debug(string(bytes))
 	_, err = w.Write(bytes)
 	if err != nil {
 		write500(w, err)
