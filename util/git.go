@@ -41,7 +41,7 @@ func AddRemote(path, name, url string, insertOnly bool) error {
 
 	option := "add"
 	if exist {
-		option = "set"
+		option = "set-url"
 	}
 	log.Debug("git", "remote", option, name, url)
 	cmd := exec.Command("git", "remote", option, name, url)

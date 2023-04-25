@@ -125,7 +125,7 @@ func PathExists(path string) (bool, error) {
 // 如果是 token 模式,则不输入 username
 // 如果是 user:password 模式,则 token 就是 password
 func GetUrl(giturl string, token string, username ...string) string {
-	user := "auto-build"
+	user := "oauth2"
 	if len(username) > 0 {
 		user = username[0]
 	}
