@@ -3,19 +3,7 @@ package model
 import (
 	"fmt"
 	"time"
-
-	"github.com/hash-rabbit/snowflake"
 )
-
-var taskNodeId int64 = 3
-var taskLogNodeId int64 = 4
-var taskNode *snowflake.Node
-var taskLogNode *snowflake.Node
-
-func init() {
-	taskNode, _ = snowflake.NewNode(taskNodeId)
-	taskLogNode, _ = snowflake.NewNode(taskLogNodeId)
-}
 
 type Task struct {
 	Id        int64  `xorm:"pk" json:"id"`
@@ -42,13 +30,13 @@ type TaskLog struct {
 }
 
 func InsertTask(t *Task) error {
-	t.Id = taskNode.Generate().Int64()
+	t.Id = node.Generate().Int64()
 	_, err := engine.InsertOne(t)
 	return err
 }
 
 func InsertTaskLog(tl *TaskLog) error {
-	tl.Id = taskLogNode.Generate().Int64()
+	tl.Id = node.Generate().Int64()
 	_, err := engine.InsertOne(tl)
 	return err
 }

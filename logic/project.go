@@ -144,7 +144,6 @@ func ListPorject(wr http.ResponseWriter, r *http.Request) {
 		writeError(wr, "sql error", err.Error())
 		return
 	}
-	log.Debugf("resp:%+v", ps[0])
 	writeJson(wr, ps)
 }
 

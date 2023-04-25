@@ -2,16 +2,7 @@ package model
 
 import (
 	"fmt"
-
-	"github.com/hash-rabbit/snowflake"
 )
-
-var projectNodeId int64 = 2
-var projectNode *snowflake.Node
-
-func init() {
-	projectNode, _ = snowflake.NewNode(projectNodeId)
-}
 
 type Project struct {
 	Id        int64  `xorm:"pk" json:"id"` //TODO:因为前端精度丢失问题,暂将 id 转为 string
@@ -25,7 +16,7 @@ type Project struct {
 }
 
 func InsertProject(p *Project) error {
-	p.Id = projectNode.Generate().Int64()
+	p.Id = node.Generate().Int64()
 	_, err := engine.InsertOne(p)
 	return err
 }

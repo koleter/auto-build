@@ -10,8 +10,14 @@ import (
 var engine *xorm.Engine
 var node *snowflake.Node
 
-func InitModel() {
-	node, err := snowflake.NewNode(1)
+func InitNode() error {
+	var err error
+	node, err = snowflake.NewNode(1)
+	if err != nil {
+		log.Errorf("create node failed")
+		return err
+	}
+	return node.SetNodeAndStepBits(4, 4) //nodeid 4 位,step 4 位
 }
 
 func InitSqlLite(filepath string) (err error) {

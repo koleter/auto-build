@@ -31,6 +31,11 @@ func main() {
 	}
 	defer model.Close()
 
+	err = model.InitNode()
+	if err != nil {
+		log.Panicf("init node error:%s", err)
+	}
+
 	err = checkDir(config.C)
 	if err != nil {
 		log.Panicf("create dir error:%s", err)

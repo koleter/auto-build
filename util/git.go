@@ -16,7 +16,9 @@ func InitGit(path string) error {
 		return nil
 	}
 
+	log.Debugf("git init")
 	cmd := exec.Command("git", "init")
+	cmd.Dir = path
 
 	return cmd.Run()
 }
@@ -41,6 +43,7 @@ func AddRemote(path, name, url string, insertOnly bool) error {
 	if exist {
 		option = "set"
 	}
+	log.Debug("git", "remote", option, name, url)
 	cmd := exec.Command("git", "remote", option, name, url)
 	cmd.Dir = path
 
@@ -48,6 +51,7 @@ func AddRemote(path, name, url string, insertOnly bool) error {
 }
 
 func checkRemoteExist(path, name string) (bool, error) {
+	log.Debug("git remote")
 	cmd := exec.Command("git", "remote")
 	cmd.Dir = path
 	remotes, err := cmd.CombinedOutput()
@@ -91,10 +95,11 @@ func Checkout(path, name string) error {
 }
 
 func CheckIsGit(path string) bool {
-	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+	log.Debug("git rev-parse --show-toplevel")
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
 	cmd.Dir = path
 	isgit, _ := cmd.CombinedOutput()
-	return strings.TrimSpace(string(isgit)) == "true"
+	return strings.TrimSpace(string(isgit)) == path
 }
 
 type LogItem struct {
