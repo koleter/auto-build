@@ -21,8 +21,11 @@ type TaskLog struct {
 	Id          int64     `xorm:"pk" json:"id"`
 	TaskId      int64     `xorm:"index" json:"task_id"`
 	Description string    `xorm:"varchar(50)" json:"description"`
-	Status      int       `xorm:"index" json:"status"`
+	Status      int       `xorm:"index" json:"status"`    //0:init,1:building,2:success,3:failed
 	Url         string    `xorm:"varchar(50)" json:"url"` //目标文件
+	LocalPath   string    `xorm:"varchar(50)" json:"local_path"`
+	Size        int64     `xorm:"default 0" json:"size"`   // TODO:增加编译后本地校验
+	Sha2        string    `xorm:"varchar(50)" json:"sha2"` // TODO:生成后生成 sha2
 	OutFilePath string    `xorm:"varchar(50)" json:"out_file_path"`
 	ErrFilePath string    `xorm:"varchar(50)" json:"err_file_path"`
 	CreateAt    time.Time `xorm:"datetime created" json:"create_at"`

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hash-rabbit/auto-build/log"
+	"github.com/subchen/go-log"
 )
 
 func InitGit(path string) error {

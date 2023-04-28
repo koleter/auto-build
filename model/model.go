@@ -1,9 +1,9 @@
 package model
 
 import (
-	"github.com/hash-rabbit/auto-build/log"
 	"github.com/hash-rabbit/snowflake"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/subchen/go-log"
 	"xorm.io/xorm"
 )
 

@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/hash-rabbit/auto-build/config"
-	"github.com/hash-rabbit/auto-build/log"
 	"github.com/hash-rabbit/auto-build/model"
 	"github.com/hash-rabbit/auto-build/util"
+	"github.com/subchen/go-log"
 )
 
 // build status
@@ -203,57 +203,7 @@ func startTask(taskid, id int64) {
 		status = Failed
 		return
 	}
-	// r, err := git.PlainOpen(p.LocalPath)
-	// if err != nil {
-	// 	log.Errorf("git open error:%s", err)
-	// 	return
-	// }
 
-	// w, err := r.Worktree()
-	// if err != nil {
-	// 	log.Errorf("git open worktree error:%s", err)
-	// 	return
-	// }
-
-	// err = w.Clean(&git.CleanOptions{
-	// 	Dir: true,
-	// })
-	// if err != nil {
-	// 	log.Errorf("git clean error:%s", err)
-	// 	return
-	// }
-
-	// err = w.Pull(&git.PullOptions{
-	// 	RemoteName:    defaultRemoteName,
-	// 	Auth:          &gith.BasicAuth{Password: p.Token, Username: "auto-build"},
-	// 	ReferenceName: plumbing.NewBranchReferenceName(t.Branch),
-	// 	SingleBranch:  true,
-	// })
-	// if err == git.NoErrAlreadyUpToDate {
-	// 	log.Debugf("git pull err:%s", err)
-	// } else if err != nil {
-	// 	log.Errorf("git pull error:%s", err)
-	// 	return
-	// }
-
-	// err = w.Checkout(&git.CheckoutOptions{
-	// 	Branch: plumbing.NewBranchReferenceName(t.Branch),
-	// })
-	// if err != nil {
-	// 	log.Errorf("git checkout %s error:%s", t.Branch, err)
-	// 	return
-	// }
-
-	// ref, err := r.Reference(plumbing.NewBranchReferenceName(t.Branch), false)
-	// if err != nil {
-	// 	log.Errorf("git get ref %s error:%s", t.Branch, err)
-	// 	return
-	// }
-	// com, err := r.CommitObject(ref.Hash())
-	// if err != nil {
-	// 	log.Errorf("git get commit %s error:%s", t.Branch, err)
-	// 	return
-	// }
 	model.UpdateTaskLogDescription(id, ls[0].Commit)
 
 	gobin := path.Join(g.LocalPath, "bin/go")
@@ -267,6 +217,11 @@ func startTask(taskid, id int64) {
 
 	c := exec.Command(gobin, "build", "-o", destfile, srcfile)
 	c.Dir = p.LocalPath
+	if p.GoMod {
+		c.Env = append(c.Env, "GO111MODULE=on")
+	} else {
+		c.Env = append(c.Env, "GO111MODULE=off")
+	}
 	c.Env = append(c.Env, "GOBIN="+g.LocalPath)
 	c.Env = append(c.Env, "GOPATH="+p.WorkSpace)
 	c.Env = append(c.Env, "GOCACHE="+path.Join(p.WorkSpace, ".cache/"))
@@ -284,6 +239,7 @@ func startTask(taskid, id int64) {
 		status = Failed
 		return
 	}
+	defer outfile.Close()
 	model.UpdateTaskLogOut(id, outfilepath)
 	log.Debugf("task log id:%d out file:%s", id, outfilepath)
 
@@ -296,6 +252,7 @@ func startTask(taskid, id int64) {
 		status = Failed
 		return
 	}
+	defer errfile.Close()
 	model.UpdateTaskLogErr(id, errfilepath)
 	log.Debugf("task log id:%d err file:%s", id, errfilepath)
 

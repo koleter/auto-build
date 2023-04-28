@@ -9,9 +9,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/hash-rabbit/auto-build/config"
-	"github.com/hash-rabbit/auto-build/log"
 	"github.com/hash-rabbit/auto-build/logic"
 	"github.com/hash-rabbit/auto-build/model"
+	"github.com/subchen/go-log"
 )
 
 func main() {

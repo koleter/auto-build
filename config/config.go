@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/BurntSushi/toml"
-	"github.com/hash-rabbit/auto-build/log"
+	"github.com/subchen/go-log"
 )
 
 type Config struct {

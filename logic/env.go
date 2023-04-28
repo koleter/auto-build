@@ -14,8 +14,8 @@ import (
 	"strings"
 
 	"github.com/hash-rabbit/auto-build/config"
-	"github.com/hash-rabbit/auto-build/log"
 	"github.com/hash-rabbit/auto-build/model"
+	"github.com/subchen/go-log"
 )
 
 var GoPkgUrlTemp string
