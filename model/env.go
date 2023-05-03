@@ -5,7 +5,7 @@ import (
 )
 
 type GoVersion struct {
-	Id        int64  `xorm:"pk" json:"id"` //TODO:因为前端精度丢失问题,暂将 id 转为 string
+	Id        int64  `xorm:"pk" json:"id"`
 	Version   string `xorm:"varchar(10) not null" json:"version"`
 	Os        string `xorm:"varchar(10)" json:"os"`
 	Arch      string `xorm:"varchar(10)" json:"arch"`

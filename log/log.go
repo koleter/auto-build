@@ -13,7 +13,7 @@ func init() {
 	log.Default.Formatter = new(formatters.TextFormatter)
 }
 
-func SetLogName(name string) {
+func SetLogFileName(name string) {
 	log.Default.Out = &writers.FixedSizeFileWriter{
 		Name:     name,
 		MaxSize:  10 * 1024 * 1024, // 10m

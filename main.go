@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/hash-rabbit/auto-build/config"
+	l "github.com/hash-rabbit/auto-build/log"
 	"github.com/hash-rabbit/auto-build/logic"
 	"github.com/hash-rabbit/auto-build/model"
 	"github.com/subchen/go-log"
@@ -19,9 +20,16 @@ func main() {
 		fmt.Print("usage: auto-build config.toml")
 		os.Exit(0)
 	}
-	config.LoadConfig(os.Args[1])
 
-	err := model.InitSqlLite(config.C.SqlFile)
+	config.LoadConfig(os.Args[1])
+	err := checkDir(config.C)
+	if err != nil {
+		log.Panicf("create dir error:%s", err)
+	}
+
+	l.SetLogFileName(filepath.Join(config.C.LogPath, "auto-build.log"))
+
+	err = model.InitSqlLite(config.C.SqlFile)
 	if err != nil {
 		log.Panicf("init sql error:%s", err)
 	}
@@ -34,11 +42,6 @@ func main() {
 	err = model.InitNode()
 	if err != nil {
 		log.Panicf("init node error:%s", err)
-	}
-
-	err = checkDir(config.C)
-	if err != nil {
-		log.Panicf("create dir error:%s", err)
 	}
 
 	srv := &http.Server{

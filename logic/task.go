@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -111,34 +112,34 @@ func ListTask(wr http.ResponseWriter, r *http.Request) {
 }
 
 func StartTask(wr http.ResponseWriter, r *http.Request) {
-	param, err := checkParam(r)
-	if err != nil {
-		log.Errorf("check param error:%s", err)
-		writeError(wr, "params error", err.Error())
-		return
-	}
-
-	var taskid int64
-	if param["task_id"] != nil {
-		taskid = int64(param["task_id"].(float64))
-	}
-
-	ts, err := model.ListTask(int64(taskid))
+	ti, err := getTaskId(r)
 	if err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
 		return
 	}
 
-	if len(ts) != 1 {
-		log.Error("task select not 1")
-		writeError(wr, "params error", "task id not ok")
+	tk, err := model.GetTask(ti)
+	if err != nil {
+		log.Error("get task error:%s", err)
+		return
+	}
+
+	p, err := model.GetProject(tk.ProjectId)
+	if err != nil {
+		log.Errorf("get project error:%s", err)
+		return
+	}
+
+	g, err := model.GetGoVersion(tk.GoVersion)
+	if err != nil {
+		log.Errorf("get version error:%s", err)
 		return
 	}
 
 	tl := &model.TaskLog{
 		Id:          time.Now().UnixMilli(),
-		TaskId:      int64(taskid),
+		TaskId:      ti,
 		Status:      Init,
 		Description: r.FormValue("description"),
 	}
@@ -150,133 +151,201 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go startTask(tl.TaskId, tl.Id)
+	t := &task{
+		id:    tl.Id,
+		g:     g,
+		p:     p,
+		t:     tk,
+		tl:    tl,
+		files: make([]*os.File, 0),
+	}
+
+	go t.start()
 
 	writeSuccess(wr, "start building...")
 }
 
-func startTask(taskid, id int64) {
-	status := Success
-	defer model.UpdateTaskLog(id, status)
-
-	t, err := model.GetTask(taskid)
+func getTaskId(r *http.Request) (int64, error) {
+	param, err := checkParam(r)
 	if err != nil {
-		log.Error("get task error:%s", err)
-		status = Failed
-		return
-	}
-	p, err := model.GetProject(t.ProjectId)
-	if err != nil {
-		log.Errorf("get project error:%s", err)
-		status = Failed
-		return
-	}
-	g, err := model.GetGoVersion(t.GoVersion)
-	if err != nil {
-		log.Errorf("get version error:%s", err)
-		status = Failed
-		return
+		log.Errorf("check param error:%s", err)
+		return 0, err
 	}
 
-	err = util.Pull(p.LocalPath, defaultRemoteName, t.Branch)
-	if err != nil {
-		log.Errorf("get pull error:%s", err)
-		status = Failed
-		return
+	var taskid int64
+	if param["task_id"] != nil {
+		taskid = int64(param["task_id"].(float64))
+	} else {
+		log.Error("taskid is nil")
+		return 0, errors.New("task_id not allowed")
 	}
 
-	err = util.Checkout(p.LocalPath, t.Branch)
+	ts, err := model.ListTask(int64(taskid))
 	if err != nil {
-		log.Errorf("get pull error:%s", err)
-		status = Failed
-		return
+		log.Errorf("select sql error:%s", err)
+		return 0, err
 	}
 
-	ls, err := util.GitLog(p.LocalPath, 1)
+	if len(ts) != 1 {
+		log.Error("task select not 1")
+		return 0, err
+	}
+	return taskid, nil
+}
+
+type task struct {
+	id int64
+	g  *model.GoVersion
+	p  *model.Project
+	t  *model.Task
+	tl *model.TaskLog
+
+	files   []*os.File
+	err_log *log.Logger
+	out_log *log.Logger
+	err     error
+}
+
+func (t *task) start() {
+	defer t.clean()
+	defer t.checkError()
+
+	t.createOutFile()
+	if t.err != nil {
+		return
+	}
+	t.out_log.Info("create out put file success")
+
+	t.createErrFile()
+	if t.err != nil {
+		return
+	}
+	t.out_log.Info("create out put error file success")
+
+	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch)
+	if t.err != nil {
+		return
+	}
+	t.out_log.Info("git pull success")
+
+	t.err = util.Checkout(t.p.LocalPath, t.t.Branch)
+	if t.err != nil {
+		return
+	}
+	t.out_log.Info("git checkout success")
+
+	ls, err := util.GitLog(t.p.LocalPath, 1)
 	if err != nil {
-		log.Errorf("get log error:%s", err)
-		status = Failed
+		t.err = err
 		return
 	}
 	if len(ls) < 1 {
-		log.Errorf("get log 0")
-		status = Failed
+		t.err = errors.New("couldn't find git log")
 		return
 	}
+	model.UpdateTaskLogDescription(t.id, ls[0].Commit)
+	t.out_log.Info("git get commmit log success")
 
-	model.UpdateTaskLogDescription(id, ls[0].Commit)
-
-	gobin := path.Join(g.LocalPath, "bin/go")
+	gobin := path.Join(t.g.LocalPath, "bin/go")
 	log.Debugf("go bin:%s", gobin)
 
-	srcfile := path.Join(p.LocalPath, t.MainFile)
+	srcfile := path.Join(t.p.LocalPath, t.t.MainFile)
 	log.Debugf("src file:%s", srcfile)
 
-	destfile := path.Join(config.C.DestPath, p.Name, t.Branch, t.DestFile)
+	destfile := path.Join(config.C.DestPath, t.p.Name, t.t.Branch, t.t.DestFile)
 	log.Debugf("dest file:%s", destfile)
 
 	c := exec.Command(gobin, "build", "-o", destfile, srcfile)
-	c.Dir = p.LocalPath
-	if p.GoMod {
+	c.Dir = t.p.LocalPath
+	if t.p.GoMod {
 		c.Env = append(c.Env, "GO111MODULE=on")
 	} else {
 		c.Env = append(c.Env, "GO111MODULE=off")
 	}
-	c.Env = append(c.Env, "GOBIN="+g.LocalPath)
-	c.Env = append(c.Env, "GOPATH="+p.WorkSpace)
-	c.Env = append(c.Env, "GOCACHE="+path.Join(p.WorkSpace, ".cache/"))
-	c.Env = append(c.Env, "GOOS="+t.DestOs)
-	c.Env = append(c.Env, "GOARCH="+t.DestArch)
-	c.Env = append(c.Env, strings.Split(p.Env, ";")...)
-	c.Env = append(c.Env, strings.Split(t.Env, ";")...)
+	c.Env = append(c.Env, "GOBIN="+t.g.LocalPath)
+	c.Env = append(c.Env, "GOPATH="+t.p.WorkSpace)
+	c.Env = append(c.Env, "GOCACHE="+path.Join(t.p.WorkSpace, ".cache/"))
+	c.Env = append(c.Env, "GOOS="+t.t.DestOs)
+	c.Env = append(c.Env, "GOARCH="+t.t.DestArch)
+	c.Env = append(c.Env, strings.Split(t.p.Env, ";")...)
+	c.Env = append(c.Env, strings.Split(t.t.Env, ";")...)
+	c.Stdout = t.out_log.Out
+	c.Stderr = t.err_log.Out
 
-	outfilename := fmt.Sprintf("%s.%d.out.log", t.DestFile, id)
-	outfilepath := path.Join(config.C.LogPath, p.Name, t.Branch, outfilename)
-	os.MkdirAll(filepath.Dir(outfilepath), os.ModePerm)
-	outfile, err := os.OpenFile(outfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
-	if err != nil {
-		log.Errorf("openfile %s error", err)
-		status = Failed
-		return
-	}
-	defer outfile.Close()
-	model.UpdateTaskLogOut(id, outfilepath)
-	log.Debugf("task log id:%d out file:%s", id, outfilepath)
-
-	errfilename := fmt.Sprintf("%s.%d.err.log", t.DestFile, id)
-	errfilepath := path.Join(config.C.LogPath, p.Name, t.Branch, errfilename)
-	os.MkdirAll(filepath.Dir(outfilepath), os.ModePerm)
-	errfile, err := os.OpenFile(errfilepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
-	if err != nil {
-		log.Errorf("openfile %s error", err)
-		status = Failed
-		return
-	}
-	defer errfile.Close()
-	model.UpdateTaskLogErr(id, errfilepath)
-	log.Debugf("task log id:%d err file:%s", id, errfilepath)
-
-	c.Stdout = outfile
-	c.Stderr = errfile
 	c.Start()
-	model.UpdateTaskLog(id, Running)
+	model.UpdateTaskLog(t.id, Running)
+	t.out_log.Info("start building")
 
 	c.Wait()
 	if c.Err != nil {
-		status = Failed
+		t.err = c.Err
 		return
 	}
+	t.out_log.Info("building finished")
 
+	// TODO:查看是否输出文件,校验本地输出文件 sha2 和文件大小
 	ip, err := util.GetLocalIp()
 	if err != nil {
 		log.Errorf("get local ip error:%s", err)
 		ip = "127.0.0.1"
 	}
-	url := fmt.Sprintf("http://%s:%d/output/%s/%s/%s", ip, config.C.Port, p.Name, t.Branch, t.DestFile)
-	log.Debugf("task log id:%d file url:%s", id, url)
-	model.UpdateTaskLogUrl(id, url)
+	url := fmt.Sprintf("http://%s:%d/output/%s/%s/%s", ip, config.C.Port, t.p.Name, t.t.Branch, t.t.DestFile)
+	log.Debugf("task log id:%d file url:%s", t.id, url)
+	model.UpdateTaskLogUrl(t.id, url)
 
-	log.Infof("task log id:%d build success", id)
+	t.out_log.Info("build success")
+	log.Infof("task log id:%d build success", t.id)
+}
+
+func (t *task) createOutFile() {
+	outfilepath := path.Join(config.C.LogPath, t.p.Name, t.t.Branch,
+		fmt.Sprintf("%s.%d.out.log", t.t.DestFile, t.id))
+	model.UpdateTaskLogOut(t.id, outfilepath)
+	t.out_log, t.err = t.newLog(outfilepath)
+}
+
+func (t *task) createErrFile() {
+	errfilepath := path.Join(config.C.LogPath, t.p.Name, t.t.Branch,
+		fmt.Sprintf("%s.%d.err.log", t.t.DestFile, t.id))
+	model.UpdateTaskLogErr(t.id, errfilepath)
+	t.err_log, t.err = t.newLog(errfilepath)
+}
+
+func (t *task) newLog(filename string) (*log.Logger, error) {
+	outfile, err := newLogFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	t.files = append(t.files, outfile)
+
+	l := log.New()
+	l.Out = outfile
+
+	return l, nil
+}
+
+func newLogFile(filename string) (*os.File, error) {
+	os.MkdirAll(filepath.Dir(filename), os.ModePerm)
+	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+}
+
+func (t *task) checkError() {
+	if t.err != nil {
+		t.err_log.Errorf("get error:%s", t.err)
+		t.out_log.Errorf("get error:%s", t.err)
+		model.UpdateTaskLog(t.id, Failed)
+	}
+}
+
+func (t *task) clean() {
+	for _, v := range t.files {
+		v.Close()
+	}
+}
+
+// TODO:尝试编译的时候加锁
+func tryLock() {
+
 }
 
 func ListTaskLog(wr http.ResponseWriter, r *http.Request) {
