@@ -326,7 +326,7 @@ func (t *task) newLog(filename string) (*log.Logger, error) {
 
 func newLogFile(filename string) (*os.File, error) {
 	os.MkdirAll(filepath.Dir(filename), os.ModePerm)
-	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 }
 
 func (t *task) checkError() {
