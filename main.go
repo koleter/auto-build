@@ -27,7 +27,7 @@ func main() {
 		log.Panicf("create dir error:%s", err)
 	}
 
-	l.SetLogFileName(filepath.Join(config.C.LogPath, "auto-build.log"))
+	l.SetLogFileName(filepath.Join(config.C.Log, "auto-build.log"))
 
 	err = model.InitSqlLite(config.C.SqlFile)
 	if err != nil {
@@ -66,6 +66,7 @@ func route(c *config.Config) *mux.Router {
 	r.HandleFunc("/api/task/list", logic.ListTask).Methods(http.MethodGet)
 	r.HandleFunc("/api/task/start", logic.StartTask).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/task/log/list", logic.ListTaskLog).Methods(http.MethodGet)
+
 	r.HandleFunc("/webhook/push", logic.ListTaskLog).Methods(http.MethodGet)
 	r.PathPrefix("/output/").Handler(http.StripPrefix("/output/", http.FileServer(http.Dir(c.DestPath)))) //
 	r.PathPrefix("/web/").Handler(http.StripPrefix("/web/", http.FileServer(http.Dir(c.WebPath))))
