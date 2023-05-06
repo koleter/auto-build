@@ -40,7 +40,7 @@ func TestCheckout(t *testing.T) {
 }
 
 func TestLog(t *testing.T) {
-	ls, _ := GitLog("../", 10)
+	ls, _ := GitLog("../", "", 10)
 	for _, v := range ls {
 		t.Logf("%s %s\n", v.Sha1, v.Commit)
 	}

@@ -66,7 +66,8 @@ func route(c *config.Config) *mux.Router {
 	r.HandleFunc("/api/task/list", logic.ListTask).Methods(http.MethodGet)
 	r.HandleFunc("/api/task/start", logic.StartTask).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/task/log/list", logic.ListTaskLog).Methods(http.MethodGet)
-	r.PathPrefix("/output/").Handler(http.StripPrefix("/output/", http.FileServer(http.Dir(c.DestPath))))
+	r.HandleFunc("/webhook/push", logic.ListTaskLog).Methods(http.MethodGet)
+	r.PathPrefix("/output/").Handler(http.StripPrefix("/output/", http.FileServer(http.Dir(c.DestPath)))) //
 	r.PathPrefix("/web/").Handler(http.StripPrefix("/web/", http.FileServer(http.Dir(c.WebPath))))
 	r.Use(mux.CORSMethodMiddleware(r))
 	return r

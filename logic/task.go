@@ -216,11 +216,11 @@ func (t *task) start() {
 	}
 	t.out_log.Info("create out put file success")
 
-	t.createErrFile()
-	if t.err != nil {
-		return
-	}
-	t.out_log.Info("create out put error file success")
+	// t.createErrFile()
+	// if t.err != nil {
+	// 	return
+	// }
+	// t.out_log.Info("create out put error file success")
 
 	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch)
 	if t.err != nil {
@@ -234,7 +234,7 @@ func (t *task) start() {
 	}
 	t.out_log.Info("git checkout success")
 
-	ls, err := util.GitLog(t.p.LocalPath, 1)
+	ls, err := util.GitLog(t.p.LocalPath, "", 1)
 	if err != nil {
 		t.err = err
 		return

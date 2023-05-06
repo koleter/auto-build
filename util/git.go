@@ -107,14 +107,14 @@ type LogItem struct {
 	Commit string
 }
 
-func GitLog(path string, n int) ([]*LogItem, error) {
+func GitLog(path string, name string, n int) ([]*LogItem, error) {
 	if !CheckIsGit(path) {
 		return nil, fmt.Errorf("path:%s not a git", path)
 	}
 
 	resu := make([]*LogItem, 0)
 
-	cmd := exec.Command("git", "log", "--oneline", "-"+strconv.Itoa(n))
+	cmd := exec.Command("git", "log", name, "--oneline", "-"+strconv.Itoa(n))
 	cmd.Dir = path
 	logs, err := cmd.CombinedOutput()
 	if err != nil {

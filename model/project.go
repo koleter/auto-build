@@ -6,7 +6,7 @@ import (
 
 type Project struct {
 	Id        int64  `xorm:"pk" json:"id"` //TODO:因为前端精度丢失问题,暂将 id 转为 string
-	Name      string `xorm:"varchar(20) not null" json:"name"`
+	Name      string `xorm:"varchar(20) not null index" json:"name"`
 	LocalPath string `xorm:"varchar(50) not null"  json:"path"`
 	Url       string `xorm:"varchar(50)"  json:"url"`
 	Token     string `xorm:"varchar(50)"  json:"token"`
@@ -24,6 +24,20 @@ func InsertProject(p *Project) error {
 func GetProject(id int64) (*Project, error) {
 	p := &Project{
 		Id: id,
+	}
+	has, err := engine.Get(p)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, fmt.Errorf("couldn't find record")
+	}
+	return p, err
+}
+
+func GetProjectByName(name string) (*Project, error) {
+	p := &Project{
+		Name: name,
 	}
 	has, err := engine.Get(p)
 	if err != nil {
