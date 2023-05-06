@@ -208,7 +208,6 @@ type task struct {
 
 func (t *task) start() {
 	defer t.clean()
-	defer t.checkError()
 
 	t.createOutFile()
 	if t.err != nil {
@@ -216,11 +215,13 @@ func (t *task) start() {
 	}
 	t.out_log.Info("create out put file success")
 
-	// t.createErrFile()
-	// if t.err != nil {
-	// 	return
-	// }
-	// t.out_log.Info("create out put error file success")
+	t.createErrFile()
+	if t.err != nil {
+		return
+	}
+	t.out_log.Info("create out put error file success")
+
+	defer t.checkError()
 
 	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch)
 	if t.err != nil {
