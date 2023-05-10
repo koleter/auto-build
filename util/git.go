@@ -16,11 +16,11 @@ func InitGit(path string) error {
 		return nil
 	}
 
-	log.Debugf("git init")
+	log.Infof("git init")
 	cmd := exec.Command("git", "init")
 	cmd.Dir = path
 
-	log.Debugf("run cmd:%s", cmd.String())
+	log.Infof("run cmd:%s", cmd.String())
 
 	return cmd.Run()
 }
@@ -49,7 +49,7 @@ func AddRemote(path, name, url string, insertOnly bool) error {
 	cmd := exec.Command("git", "remote", option, name, url)
 	cmd.Dir = path
 
-	log.Debugf("run cmd:%s", cmd.String())
+	log.Infof("run cmd:%s", cmd.String())
 
 	return cmd.Run()
 }
@@ -58,7 +58,7 @@ func checkRemoteExist(path, name string) (bool, error) {
 	log.Debug("git remote")
 	cmd := exec.Command("git", "remote")
 	cmd.Dir = path
-	log.Debugf("run cmd:%s", cmd.String())
+	log.Infof("run cmd:%s", cmd.String())
 
 	remotes, err := cmd.CombinedOutput()
 	if err != nil {
@@ -86,7 +86,7 @@ func Pull(path, remote, branch string) error {
 	cmd := exec.CommandContext(ctx, "git", "pull", remote, branch)
 	cmd.Dir = path
 
-	log.Debugf("run cmd:%s", cmd.String())
+	log.Infof("run cmd:%s", cmd.String())
 
 	return cmd.Run()
 }
@@ -99,7 +99,7 @@ func Checkout(path, name string) error {
 	cmd := exec.Command("git", "checkout", name)
 	cmd.Dir = path
 
-	log.Debugf("run cmd:%s", cmd.String())
+	log.Infof("run cmd:%s", cmd.String())
 
 	return cmd.Run()
 }
@@ -127,7 +127,7 @@ func GitLog(path string, name string, n int) ([]*LogItem, error) {
 	cmd := exec.Command("git", "log", name, "--oneline", "-"+strconv.Itoa(n))
 	cmd.Dir = path
 
-	log.Debugf("run cmd:%s", cmd.String())
+	log.Infof("run cmd:%s", cmd.String())
 
 	logs, err := cmd.CombinedOutput()
 	if err != nil {

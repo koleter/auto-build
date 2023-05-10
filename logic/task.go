@@ -229,7 +229,7 @@ func (t *task) start() {
 	}
 	t.out_log.Info("git pull success")
 
-	t.out_log.Infof("git log %s", defaultRemoteName)
+	t.out_log.Infof("git log %s", t.t.Branch)
 	ls, err := util.GitLog(t.p.LocalPath, "remotes/"+defaultRemoteName+"/"+t.t.Branch, 1)
 	if err != nil {
 		t.out_log.Error(err)
@@ -271,6 +271,7 @@ func (t *task) start() {
 	env = append(env, "PATH=/opt/gcc-4.8.1/bin:"+ospath)
 	env = append(env, "GOBIN="+t.g.LocalPath)
 	env = append(env, "GOPATH="+t.p.WorkSpace)
+	env = append(env, "GOPROXY=https://goproxy.cn,direct")
 	env = append(env, "GOCACHE="+path.Join(t.p.WorkSpace, ".cache/"))
 	env = append(env, "GOOS="+t.t.DestOs)
 	env = append(env, "GOARCH="+t.t.DestArch)
@@ -289,24 +290,24 @@ func (t *task) start() {
 
 	// TODO
 	// go get -insecure
-	var stderr bytes.Buffer
-	goget := exec.Command(gobin, "get", "-insecure", "./...")
-	goget.Dir = t.p.LocalPath
-	goget.Env = env
-	goget.Stdout = t.out_log.Out
-	goget.Stderr = &stderr
-	t.out_log.Info(goget.String())
-	err = goget.Run()
-	if err != nil {
-		t.out_log.Error(err)
-		t.err = err
-		return
-	}
-	if stderr.Len() > 0 {
-		t.out_log.Error(stderr.String())
-		t.err = errors.New(stderr.String())
-		return
-	}
+	// var stderr bytes.Buffer
+	// goget := exec.Command(gobin, "get", "-insecure", "./...")
+	// goget.Dir = t.p.LocalPath
+	// goget.Env = env
+	// goget.Stdout = t.out_log.Out
+	// goget.Stderr = &stderr
+	// t.out_log.Info(goget.String())
+	// err = goget.Run()
+	// if err != nil {
+	// 	t.out_log.Error(err)
+	// 	t.err = err
+	// 	return
+	// }
+	// if stderr.Len() > 0 {
+	// 	t.out_log.Error(stderr.String())
+	// 	t.err = errors.New(stderr.String())
+	// 	return
+	// }
 
 	// go build
 	var err_out bytes.Buffer
