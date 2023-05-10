@@ -211,6 +211,7 @@ type task struct {
 func (t *task) start() {
 	defer t.clean()
 	defer t.checkError()
+	defer t.checkoutMaster()
 
 	log.Infof("star build task:%d", t.id)
 
@@ -222,7 +223,7 @@ func (t *task) start() {
 	t.out_log.Info("create out put file success")
 
 	t.out_log.Infof("git pull %s", defaultRemoteName)
-	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, "")
+	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch)
 	if t.err != nil {
 		t.out_log.Error(t.err)
 		return
@@ -384,6 +385,13 @@ func (t *task) checkError() {
 func (t *task) clean() {
 	for _, v := range t.files {
 		v.Close()
+	}
+}
+
+func (t *task) checkoutMaster() {
+	err := util.Checkout(t.p.LocalPath, t.p.MainBranch)
+	if err != nil {
+		log.Error(err)
 	}
 }
 

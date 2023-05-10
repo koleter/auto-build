@@ -86,9 +86,7 @@ func Pull(path, remote, branch string) error {
 	cmd := exec.CommandContext(ctx, "git", "pull", remote, branch)
 	cmd.Dir = path
 
-	log.Infof("run cmd:%s", cmd.String())
-
-	return cmd.Run()
+	return RunCmd(cmd)
 }
 
 func Checkout(path, name string) error {
@@ -99,9 +97,7 @@ func Checkout(path, name string) error {
 	cmd := exec.Command("git", "checkout", name)
 	cmd.Dir = path
 
-	log.Infof("run cmd:%s", cmd.String())
-
-	return cmd.Run()
+	return RunCmd(cmd)
 }
 
 func CheckIsGit(path string) bool {
