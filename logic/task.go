@@ -1,8 +1,10 @@
 package logic
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -99,7 +101,7 @@ func AddTask(wr http.ResponseWriter, r *http.Request) {
 func ListTask(wr http.ResponseWriter, r *http.Request) {
 	projectid, err := strconv.Atoi(r.FormValue("project_id"))
 	if err != nil {
-		log.Errorf("check param error:%s", err)
+		log.Warnf("check param error:%s", err)
 		projectid = 0
 	}
 	ts, err := model.ListTask(int64(projectid))
@@ -201,77 +203,118 @@ type task struct {
 	tl *model.TaskLog
 
 	files   []*os.File
-	err_log *log.Logger
 	out_log *log.Logger
-	err     error
+
+	err error
 }
 
 func (t *task) start() {
 	defer t.clean()
+	defer t.checkError()
+
+	log.Infof("star build task:%d", t.id)
 
 	t.createOutFile()
 	if t.err != nil {
+		log.Error("create out file error")
 		return
 	}
 	t.out_log.Info("create out put file success")
 
-	t.createErrFile()
+	t.out_log.Infof("git pull %s", defaultRemoteName)
+	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, "")
 	if t.err != nil {
-		return
-	}
-	t.out_log.Info("create out put error file success")
-
-	defer t.checkError()
-
-	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch)
-	if t.err != nil {
+		t.out_log.Error(t.err)
 		return
 	}
 	t.out_log.Info("git pull success")
 
-	t.err = util.Checkout(t.p.LocalPath, t.t.Branch)
-	if t.err != nil {
-		return
-	}
-	t.out_log.Info("git checkout success")
-
-	ls, err := util.GitLog(t.p.LocalPath, "", 1)
+	t.out_log.Infof("git log %s", defaultRemoteName)
+	ls, err := util.GitLog(t.p.LocalPath, "remotes/"+defaultRemoteName+"/"+t.t.Branch, 1)
 	if err != nil {
+		t.out_log.Error(err)
 		t.err = err
 		return
 	}
 	if len(ls) < 1 {
+		t.out_log.Errorf("couldn't find git log")
 		t.err = errors.New("couldn't find git log")
 		return
 	}
 	model.UpdateTaskLogDescription(t.id, ls[0].Commit)
 	t.out_log.Info("git get commmit log success")
 
+	t.err = util.Checkout(t.p.LocalPath, ls[0].Sha1)
+	if t.err != nil {
+		t.out_log.Error(t.err)
+		log.Error(t.err)
+		return
+	}
+	t.out_log.Info("git checkout success")
+
 	gobin := path.Join(t.g.LocalPath, "bin/go")
-	log.Debugf("go bin:%s", gobin)
+	t.out_log.Infof("go bin:%s", gobin)
 
 	srcfile := path.Join(t.p.LocalPath, t.t.MainFile)
-	log.Debugf("src file:%s", srcfile)
+	t.out_log.Infof("src file:%s", srcfile)
 
 	destfile := path.Join(config.C.DestPath, t.p.Name, t.t.Branch, t.t.DestFile)
-	log.Debugf("dest file:%s", destfile)
+	t.out_log.Infof("dest file:%s", destfile)
 
+	ospath := os.Getenv("PATH")
+	env := make([]string, 0)
+	if t.p.GoMod {
+		env = append(env, "GO111MODULE=on")
+	} else {
+		env = append(env, "GO111MODULE=off")
+	}
+	env = append(env, "PATH=/opt/gcc-4.8.1/bin:"+ospath)
+	env = append(env, "GOBIN="+t.g.LocalPath)
+	env = append(env, "GOPATH="+t.p.WorkSpace)
+	env = append(env, "GOCACHE="+path.Join(t.p.WorkSpace, ".cache/"))
+	env = append(env, "GOOS="+t.t.DestOs)
+	env = append(env, "GOARCH="+t.t.DestArch)
+	env = append(env, strings.Split(t.p.Env, ";")...)
+	env = append(env, strings.Split(t.t.Env, ";")...)
+
+	goenv := exec.Command(gobin, "env")
+	goenv.Dir = t.p.LocalPath
+	out, err := goenv.CombinedOutput()
+	if err != nil {
+		t.out_log.Error(t.err)
+		t.err = err
+		return
+	}
+	t.out_log.Infof("go env::%s", string(out))
+
+	// TODO
+	// go get -insecure
+	var stderr bytes.Buffer
+	goget := exec.Command(gobin, "get", "-insecure", "./...")
+	goget.Dir = t.p.LocalPath
+	goget.Env = env
+	goget.Stdout = t.out_log.Out
+	goget.Stderr = &stderr
+	t.out_log.Info(goget.String())
+	err = goget.Run()
+	if err != nil {
+		t.out_log.Error(err)
+		t.err = err
+		return
+	}
+	if stderr.Len() > 0 {
+		t.out_log.Error(stderr.String())
+		t.err = errors.New(stderr.String())
+		return
+	}
+
+	// go build
+	var err_out bytes.Buffer
 	c := exec.Command(gobin, "build", "-o", destfile, srcfile)
 	c.Dir = t.p.LocalPath
-	if t.p.GoMod {
-		c.Env = append(c.Env, "GO111MODULE=on")
-	} else {
-		c.Env = append(c.Env, "GO111MODULE=off")
-	}
-	c.Env = append(c.Env, "GOBIN="+t.g.LocalPath)
-	c.Env = append(c.Env, "GOPATH="+t.p.WorkSpace)
-	c.Env = append(c.Env, "GOCACHE="+path.Join(t.p.WorkSpace, ".cache/"))
-	c.Env = append(c.Env, "GOOS="+t.t.DestOs)
-	c.Env = append(c.Env, "GOARCH="+t.t.DestArch)
-	c.Env = append(c.Env, strings.Split(t.p.Env, ";")...)
-	c.Env = append(c.Env, strings.Split(t.t.Env, ";")...)
+	c.Env = env
 	c.Stdout = t.out_log.Out
-	c.Stderr = t.err_log.Out
+	c.Stderr = &err_out
 
 	c.Start()
 	model.UpdateTaskLog(t.id, Running)
@@ -280,6 +323,11 @@ func (t *task) start() {
 	c.Wait()
 	if c.Err != nil {
 		t.err = c.Err
+		return
+	}
+	if err_out.Len() > 0 {
+		t.out_log.Error(err_out.String())
+		t.err = errors.New(err_out.String())
 		return
 	}
 	t.out_log.Info("building finished")
@@ -294,8 +342,7 @@ func (t *task) start() {
 	log.Debugf("task log id:%d file url:%s", t.id, url)
 	model.UpdateTaskLogUrl(t.id, url)
 
-	t.out_log.Info("build success")
-	log.Infof("task log id:%d build success", t.id)
+	t.out_log.Info("task log id:%d file url:%s", t.id, url)
 }
 
 func (t *task) createOutFile() {
@@ -303,13 +350,6 @@ func (t *task) createOutFile() {
 		fmt.Sprintf("%s.%d.out.log", t.t.DestFile, t.id))
 	model.UpdateTaskLogOut(t.id, outfilepath)
 	t.out_log, t.err = t.newLog(outfilepath)
-}
-
-func (t *task) createErrFile() {
-	errfilepath := path.Join(config.C.LogPath, t.p.Name, t.t.Branch,
-		fmt.Sprintf("%s.%d.err.log", t.t.DestFile, t.id))
-	model.UpdateTaskLogErr(t.id, errfilepath)
-	t.err_log, t.err = t.newLog(errfilepath)
 }
 
 func (t *task) newLog(filename string) (*log.Logger, error) {
@@ -332,9 +372,11 @@ func newLogFile(filename string) (*os.File, error) {
 
 func (t *task) checkError() {
 	if t.err != nil {
-		t.err_log.Errorf("get error:%s", t.err)
-		t.out_log.Errorf("get error:%s", t.err)
+		log.Infof("build taskid:%d failed", t.id)
 		model.UpdateTaskLog(t.id, Failed)
+	} else {
+		log.Infof("build taskid:%d success", t.id)
+		model.UpdateTaskLog(t.id, Success)
 	}
 }
 
@@ -352,7 +394,7 @@ func tryLock() {
 func ListTaskLog(wr http.ResponseWriter, r *http.Request) {
 	taskid, err := strconv.Atoi(r.FormValue("task_id"))
 	if err != nil {
-		log.Errorf("check param error:%s", err)
+		log.Warnf("check param error:%s", err)
 		taskid = 0
 	}
 	ts, err := model.ListTaskLog(int64(taskid))
@@ -362,4 +404,36 @@ func ListTaskLog(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJson(wr, ts)
+}
+
+func GetTaskLogOutput(wr http.ResponseWriter, r *http.Request) {
+	recordid, err := strconv.Atoi(r.FormValue("task_log_id"))
+	if err != nil {
+		log.Errorf("check param error:%s", err)
+		writeError(wr, "check param error", err.Error())
+		return
+	}
+
+	tl, err := model.GetTaskLog(int64(recordid))
+	if err != nil {
+		log.Errorf("select sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	f, err := os.Open(tl.OutFilePath)
+	if err != nil {
+		log.Errorf("logic error:%s", err)
+		writeError(wr, "logic error", err.Error())
+		return
+	}
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		log.Errorf("logic error:%s", err)
+		writeError(wr, "logic error", err.Error())
+		return
+	}
+
+	writeJson(wr, string(data))
 }

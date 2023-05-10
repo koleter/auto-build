@@ -110,3 +110,16 @@ func ListTaskLog(taskid int64) ([]*TaskLog, error) {
 	err := s.Desc("create_at").Find(&tls)
 	return tls, err
 }
+
+func GetTaskLog(record_id int64) (*TaskLog, error) {
+	t := &TaskLog{}
+	has, err := engine.Where("id = ?", record_id).Get(t)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, fmt.Errorf("couldn't find record id:%d", record_id)
+	}
+
+	return t, nil
+}
