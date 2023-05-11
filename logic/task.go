@@ -223,15 +223,23 @@ func (t *task) start() {
 	t.out_log.Info("create out put file success")
 
 	t.out_log.Infof("git pull %s", defaultRemoteName)
-	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch)
+	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch+":"+t.t.Branch)
 	if t.err != nil {
 		t.out_log.Error(t.err)
 		return
 	}
 	t.out_log.Info("git pull success")
 
+	t.err = util.Checkout(t.p.LocalPath, t.t.Branch)
+	if t.err != nil {
+		t.out_log.Error(t.err)
+		log.Error(t.err)
+		return
+	}
+	t.out_log.Info("git checkout success")
+
 	t.out_log.Infof("git log %s", t.t.Branch)
-	ls, err := util.GitLog(t.p.LocalPath, "remotes/"+defaultRemoteName+"/"+t.t.Branch, 1)
+	ls, err := util.GitLog(t.p.LocalPath, t.t.Branch, 1)
 	if err != nil {
 		t.out_log.Error(err)
 		t.err = err
@@ -244,14 +252,6 @@ func (t *task) start() {
 	}
 	model.UpdateTaskLogDescription(t.id, ls[0].Commit)
 	t.out_log.Info("git get commmit log success")
-
-	t.err = util.Checkout(t.p.LocalPath, ls[0].Sha1)
-	if t.err != nil {
-		t.out_log.Error(t.err)
-		log.Error(t.err)
-		return
-	}
-	t.out_log.Info("git checkout success")
 
 	gobin := path.Join(t.g.LocalPath, "bin/go")
 	t.out_log.Infof("go bin:%s", gobin)
