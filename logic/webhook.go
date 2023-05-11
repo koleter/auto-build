@@ -1,7 +1,6 @@
 package logic
 
 import (
-	"io"
 	"net/http"
 
 	"github.com/hash-rabbit/auto-build/model"
@@ -24,9 +23,6 @@ type ProjectPushInfo struct {
 }
 
 func DoWebHook(wr http.ResponseWriter, r *http.Request) {
-	data, _ := io.ReadAll(r.Body)
-	log.Info(string(data))
-
 	e := new(Event)
 	err := ParseParam(r, e)
 	if err != nil {
