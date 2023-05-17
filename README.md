@@ -20,5 +20,9 @@ sql_file = "./dev.db" # sqlite 文件位置,会自动创建
 web_path = "./dist/" # 前端目录,可以用下面的前端项目编译后的 dist 目录
 ```
 
+## TODO
+- [ ] webhook接到请求后编译
+- [ ] 删除 goenv/task/project
+- [ ] 添加 golang/新建项目添加进度
 ## 前端
 [链接](https://github.com/hash-rabbit/auto-build-web)

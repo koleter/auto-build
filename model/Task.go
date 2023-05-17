@@ -21,7 +21,7 @@ type TaskLog struct {
 	Id          int64     `xorm:"pk" json:"id"`
 	TaskId      int64     `xorm:"index" json:"task_id"`
 	Description string    `xorm:"varchar(50)" json:"description"`
-	Status      int       `xorm:"index" json:"status"`    //0:init,1:building,2:success,3:failed
+	Status      int       `xorm:"index" json:"status"`    //0:init,1:building,2:success,3:failed TODO:100代表 success,0-100 代表进度,<0 代表失败
 	Url         string    `xorm:"varchar(50)" json:"url"` //目标文件
 	LocalPath   string    `xorm:"varchar(50)" json:"local_path"`
 	Size        int64     `xorm:"default 0" json:"size"`   // TODO:增加编译后本地校验
@@ -101,13 +101,33 @@ func ListTask(taskId int64) ([]*Task, error) {
 	return ts, err
 }
 
-func ListTaskLog(taskid int64) ([]*TaskLog, error) {
-	tls := make([]*TaskLog, 0)
+type TaskLogInfo struct {
+	TaskLog `xorm:"extends"`
+	Name    string `json:"name"`
+	Branch  string `json:"branch"`
+	Version string `json:"version"`
+}
+
+func ListTaskLog(versionId, projectId, taskid int64, limit int, offset ...int) ([]*TaskLogInfo, error) {
+	tls := make([]*TaskLogInfo, 0)
 	s := engine.NewSession()
-	if taskid > 0 {
-		s.Where("task_id = ?", taskid)
+	s.Table("task_log").Join("INNER", "task", "task.id = task_log.task_id").
+		Join("INNER", "project", "task.project_id = project.id").
+		Join("INNER", "go_version", "task.go_version = go_version.id")
+
+	if versionId > 0 {
+		s.Where("go_version.id = ?", versionId)
 	}
-	err := s.Desc("create_at").Find(&tls)
+
+	if projectId > 0 {
+		s.Where("project.id = ?", versionId)
+	}
+
+	if taskid > 0 {
+		s.Where("task.id = ?", taskid)
+	}
+
+	err := s.Desc("create_at").Limit(limit, offset...).Find(&tls)
 	return tls, err
 }
 

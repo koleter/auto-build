@@ -223,7 +223,7 @@ func (t *task) start() {
 	t.out_log.Info("create out put file success")
 
 	t.out_log.Infof("git pull %s", defaultRemoteName)
-	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch+":"+t.t.Branch)
+	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch+":"+t.t.Branch) //TODO:这块很容易卡住,需要排查
 	if t.err != nil {
 		t.out_log.Error(t.err)
 		return
@@ -396,22 +396,49 @@ func (t *task) checkoutMaster() {
 }
 
 // TODO:尝试编译的时候加锁
+// git pull 总是卡住,先不加锁
 func tryLock() {
 
 }
 
 func ListTaskLog(wr http.ResponseWriter, r *http.Request) {
-	taskid, err := strconv.Atoi(r.FormValue("task_id"))
+	projectid, err := strconv.ParseInt(r.FormValue("project_id"), 10, 8)
 	if err != nil {
-		log.Warnf("check param error:%s", err)
+		log.Debugf("check param error:%s", err)
+		projectid = 0
+	}
+
+	versionid, err := strconv.ParseInt(r.FormValue("version_id"), 10, 8)
+	if err != nil {
+		log.Debugf("check param error:%s", err)
+		versionid = 0
+	}
+
+	taskid, err := strconv.ParseInt(r.FormValue("task_id"), 10, 8)
+	if err != nil {
+		log.Debugf("check param error:%s", err)
 		taskid = 0
 	}
-	ts, err := model.ListTaskLog(int64(taskid))
+
+	limit, err := strconv.Atoi(r.FormValue("page_size"))
+	if err != nil {
+		log.Debugf("check param error:%s", err)
+		limit = 20
+	}
+
+	offset, err := strconv.Atoi(r.FormValue("page_num"))
+	if err != nil {
+		log.Debugf("check param error:%s", err)
+		offset = 0
+	}
+
+	ts, err := model.ListTaskLog(versionid, projectid, taskid, limit, offset)
 	if err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
 		return
 	}
+
 	writeJson(wr, ts)
 }
 
