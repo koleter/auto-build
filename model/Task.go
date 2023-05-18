@@ -21,11 +21,11 @@ type TaskLog struct {
 	Id          int64     `xorm:"pk" json:"id"`
 	TaskId      int64     `xorm:"index" json:"task_id"`
 	Description string    `xorm:"varchar(50)" json:"description"`
-	Status      int       `xorm:"index" json:"status"`    //0:init,1:building,2:success,3:failed TODO:100代表 success,0-100 代表进度,<0 代表失败
-	Url         string    `xorm:"varchar(50)" json:"url"` //目标文件
-	LocalPath   string    `xorm:"varchar(50)" json:"local_path"`
-	Size        int64     `xorm:"default 0" json:"size"`   // TODO:增加编译后本地校验
-	Sha2        string    `xorm:"varchar(50)" json:"sha2"` // TODO:生成后生成 sha2
+	Status      int       `xorm:"index" json:"status"`           //0:init,1:building,2:success,3:failed TODO:100代表 success,0-100 代表进度,<0 代表失败
+	Url         string    `xorm:"varchar(50)" json:"url"`        //目标文件
+	LocalPath   string    `xorm:"varchar(50)" json:"local_path"` //生成文件本地路径
+	Size        int64     `xorm:"default 0" json:"size"`         // TODO:增加编译后本地校验
+	Sha2        string    `xorm:"varchar(50)" json:"sha2"`       // TODO:生成后生成 sha2
 	OutFilePath string    `xorm:"varchar(50)" json:"out_file_path"`
 	ErrFilePath string    `xorm:"varchar(50)" json:"err_file_path"`
 	CreateAt    time.Time `xorm:"datetime created" json:"create_at"`
@@ -91,11 +91,11 @@ func GetTask(id int64) (*Task, error) {
 	return t, nil
 }
 
-func ListTask(taskId int64) ([]*Task, error) {
+func ListTask(projectid int64) ([]*Task, error) {
 	ts := make([]*Task, 0)
 	s := engine.NewSession()
-	if taskId > 0 {
-		s.Where("id = ?", taskId)
+	if projectid > 0 {
+		s.Where("project_id = ?", projectid)
 	}
 	err := s.Find(&ts)
 	return ts, err
