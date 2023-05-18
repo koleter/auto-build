@@ -19,4 +19,5 @@ func SetLogFileName(name string) {
 		MaxSize:  10 * 1024 * 1024, // 10m
 		MaxCount: 10,
 	}
+	log.Default.Level = log.DEBUG
 }
