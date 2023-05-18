@@ -101,7 +101,7 @@ func AddTask(wr http.ResponseWriter, r *http.Request) {
 func ListTask(wr http.ResponseWriter, r *http.Request) {
 	projectid, err := strconv.Atoi(r.FormValue("project_id"))
 	if err != nil {
-		log.Warnf("check param error:%s", err)
+		log.Debugf("check param error:%s", err)
 		projectid = 0
 	}
 	ts, err := model.ListTask(int64(projectid))
@@ -404,31 +404,31 @@ func tryLock() {
 func ListTaskLog(wr http.ResponseWriter, r *http.Request) {
 	projectid, err := strconv.ParseInt(r.FormValue("project_id"), 10, 8)
 	if err != nil {
-		log.Debugf("check param error:%s", err)
+		log.Warnf("check param error:%s", err)
 		projectid = 0
 	}
 
 	versionid, err := strconv.ParseInt(r.FormValue("version_id"), 10, 8)
 	if err != nil {
-		log.Debugf("check param error:%s", err)
+		log.Warnf("check param error:%s", err)
 		versionid = 0
 	}
 
 	taskid, err := strconv.ParseInt(r.FormValue("task_id"), 10, 8)
 	if err != nil {
-		log.Debugf("check param error:%s", err)
+		log.Warnf("check param error:%s", err)
 		taskid = 0
 	}
 
 	limit, err := strconv.Atoi(r.FormValue("page_size"))
 	if err != nil {
-		log.Debugf("check param error:%s", err)
+		log.Warnf("check param error:%s", err)
 		limit = 20
 	}
 
 	offset, err := strconv.Atoi(r.FormValue("page_num"))
 	if err != nil {
-		log.Debugf("check param error:%s", err)
+		log.Warnf("check param error:%s", err)
 		offset = 0
 	}
 
