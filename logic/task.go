@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hash-rabbit/auto-build/config"
 	"github.com/hash-rabbit/auto-build/model"
@@ -124,6 +123,7 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 	tk, err := model.GetTask(ti)
 	if err != nil {
 		log.Error("get task error:%s", err)
+		writeError(wr, "sql error", err.Error())
 		return
 	}
 
@@ -140,10 +140,8 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 	}
 
 	tl := &model.TaskLog{
-		Id:          time.Now().UnixMilli(),
-		TaskId:      ti,
-		Status:      Init,
-		Description: r.FormValue("description"),
+		TaskId: ti,
+		Status: Init,
 	}
 
 	err = model.InsertTaskLog(tl)
@@ -182,16 +180,6 @@ func getTaskId(r *http.Request) (int64, error) {
 		return 0, errors.New("task_id not allowed")
 	}
 
-	ts, err := model.ListTask(int64(taskid))
-	if err != nil {
-		log.Errorf("select sql error:%s", err)
-		return 0, err
-	}
-
-	if len(ts) != 1 {
-		log.Error("task select not 1")
-		return 0, err
-	}
 	return taskid, nil
 }
 
@@ -402,19 +390,19 @@ func tryLock() {
 }
 
 func ListTaskLog(wr http.ResponseWriter, r *http.Request) {
-	projectid, err := strconv.ParseInt(r.FormValue("project_id"), 10, 8)
+	projectid, err := strconv.ParseInt(r.FormValue("project_id"), 10, 64)
 	if err != nil {
 		log.Warnf("check param error:%s", err)
 		projectid = 0
 	}
 
-	versionid, err := strconv.ParseInt(r.FormValue("version_id"), 10, 8)
+	versionid, err := strconv.ParseInt(r.FormValue("version_id"), 10, 64)
 	if err != nil {
 		log.Warnf("check param error:%s", err)
 		versionid = 0
 	}
 
-	taskid, err := strconv.ParseInt(r.FormValue("task_id"), 10, 8)
+	taskid, err := strconv.ParseInt(r.FormValue("task_id"), 10, 64)
 	if err != nil {
 		log.Warnf("check param error:%s", err)
 		taskid = 0
