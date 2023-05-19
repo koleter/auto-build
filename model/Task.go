@@ -10,6 +10,7 @@ type Task struct {
 	ProjectId int64  `xorm:"index" json:"project_id"`
 	GoVersion int64  `xorm:"index" json:"go_version_id"` // envid
 	Branch    string `xorm:"varchar(10)" json:"branch"`
+	AutoBuild bool   `xorm:"Bool" json:"auto_build"`
 	MainFile  string `xorm:"varchar(20)" json:"main_file"` // 主文件
 	DestFile  string `xorm:"varchar(20)" json:"dest_file"` // 目标文件
 	DestOs    string `xorm:"varchar(10)" json:"dest_os"`   // 目标系统
@@ -27,7 +28,6 @@ type TaskLog struct {
 	Size        int64     `xorm:"default 0" json:"size"`         // TODO:增加编译后本地校验
 	Sha2        string    `xorm:"varchar(50)" json:"sha2"`       // TODO:生成后生成 sha2
 	OutFilePath string    `xorm:"varchar(50)" json:"out_file_path"`
-	ErrFilePath string    `xorm:"varchar(50)" json:"err_file_path"`
 	CreateAt    time.Time `xorm:"datetime created" json:"create_at"`
 	FinishAt    time.Time `xorm:"datetime updated" json:"finish_at"`
 }
@@ -36,6 +36,17 @@ func InsertTask(t *Task) error {
 	t.Id = node.Generate().Int64()
 	_, err := engine.InsertOne(t)
 	return err
+}
+
+func UpdateTaskAutoBuild(id int64, auto bool) error {
+	tl := &Task{
+		AutoBuild: auto,
+	}
+	n, err := engine.Where("id = ?", id).Cols("auto_build").Update(tl)
+	if n == 1 {
+		return nil
+	}
+	return fmt.Errorf("update cols:%d err:%s", n, err)
 }
 
 func InsertTaskLog(tl *TaskLog) error {
@@ -70,13 +81,6 @@ func UpdateTaskLogOut(id int64, filepath string) {
 		OutFilePath: filepath,
 	}
 	engine.Where("id = ?", id).Cols("out_file_path").Update(tl)
-}
-
-func UpdateTaskLogErr(id int64, filepath string) {
-	tl := &TaskLog{
-		ErrFilePath: filepath,
-	}
-	engine.Where("id = ?", id).Cols("err_file_path").Update(tl)
 }
 
 func GetTask(id int64) (*Task, error) {
@@ -120,7 +124,7 @@ func ListTaskLog(versionId, projectId, taskid int64, limit int, offset ...int) (
 	}
 
 	if projectId > 0 {
-		s.Where("project.id = ?", versionId)
+		s.Where("project.id = ?", projectId)
 	}
 
 	if taskid > 0 {

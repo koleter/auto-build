@@ -1,5 +1,7 @@
 config.toml
 
+temp/
+
 output/
 goenv/
 buildlog/

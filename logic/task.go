@@ -130,12 +130,14 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 	p, err := model.GetProject(tk.ProjectId)
 	if err != nil {
 		log.Errorf("get project error:%s", err)
+		writeError(wr, "sql error", err.Error())
 		return
 	}
 
 	g, err := model.GetGoVersion(tk.GoVersion)
 	if err != nil {
 		log.Errorf("get version error:%s", err)
+		writeError(wr, "sql error", err.Error())
 		return
 	}
 
@@ -210,7 +212,7 @@ func (t *task) start() {
 	}
 	t.out_log.Info("create out put file success")
 
-	t.out_log.Infof("git pull %s", defaultRemoteName)
+	t.out_log.Infof("git pull %s %s", defaultRemoteName, t.t.Branch+":"+t.t.Branch)
 	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch+":"+t.t.Branch) //TODO:这块很容易卡住,需要排查
 	if t.err != nil {
 		t.out_log.Error(t.err)
@@ -275,7 +277,7 @@ func (t *task) start() {
 		t.err = err
 		return
 	}
-	t.out_log.Infof("go env::%s", string(out))
+	t.out_log.Infof("go env:\n%s", string(out))
 
 	// TODO
 	// go get -insecure
@@ -460,4 +462,20 @@ func GetTaskLogOutput(wr http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJson(wr, string(data))
+}
+
+func SetTaskAutoBuild(wr http.ResponseWriter, r *http.Request) {
+	t := &model.Task{}
+	err := ParseParam(r, t)
+	if err != nil {
+		log.Debugf("check param error:%s", err)
+	}
+
+	err = model.UpdateTaskAutoBuild(t.Id, t.AutoBuild)
+	if err != nil {
+		log.Errorf("select sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+	writeSuccess(wr, "更新成功")
 }
