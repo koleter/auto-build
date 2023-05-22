@@ -125,10 +125,15 @@ func PathExists(path string) (bool, error) {
 // 如果是 token 模式,则不输入 username
 // 如果是 user:password 模式,则 token 就是 password
 func GetUrl(giturl string, token string, username ...string) string {
+	if len(token) == 0 { //公有库
+		return giturl
+	}
+
 	user := "oauth2"
 	if len(username) > 0 {
-		user = username[0]
+		user = url.QueryEscape(username[0])
 	}
+
 	if strings.HasPrefix(giturl, "https://") {
 		return fmt.Sprintf("https://%s:%s@%s", user, token, strings.TrimPrefix(giturl, "https://"))
 	} else if strings.HasPrefix(giturl, "http://") {
