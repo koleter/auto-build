@@ -97,9 +97,17 @@ func GetTask(id int64) (*Task, error) {
 	return t, nil
 }
 
+type TaskInfo struct {
+	Task    `xorm:"extends"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
 func ListTask(projectid int64, goverid int64) ([]*Task, error) {
 	ts := make([]*Task, 0)
 	s := engine.NewSession()
+	s.Table("task").Join("INNER", "project", "task.project_id = project.id").
+		Join("INNER", "go_version", "task.go_version = go_version.id")
 	if projectid > 0 {
 		s.Where("project_id = ?", projectid)
 	}
