@@ -2,16 +2,18 @@ package model
 
 import (
 	"fmt"
+	"time"
 )
 
 type GoVersion struct {
-	Id        int64  `xorm:"pk" json:"id"`
-	Version   string `xorm:"varchar(10) not null" json:"version"`
-	Os        string `xorm:"varchar(10)" json:"os"`
-	Arch      string `xorm:"varchar(10)" json:"arch"`
-	Url       string `xorm:"varchar(100)" json:"url"`
-	Sha2      string `xorm:"varchar(64)" json:"sha2"`
-	LocalPath string `xorm:"varchar(100)" json:"localpath"` // 本地的 go bin 上一级的绝对路径
+	Id        int64     `xorm:"pk" json:"id"`
+	Version   string    `xorm:"varchar(10) not null" json:"version"`
+	Os        string    `xorm:"varchar(10)" json:"os"`
+	Arch      string    `xorm:"varchar(10)" json:"arch"`
+	Url       string    `xorm:"varchar(100)" json:"url"`
+	Sha2      string    `xorm:"varchar(64)" json:"sha2"`
+	LocalPath string    `xorm:"varchar(100)" json:"localpath"` // 本地的 go bin 上一级的绝对路径
+	DeletedAt time.Time `xorm:"deleted" json:"-"`
 }
 
 func InsertGoVersion(ge *GoVersion) error {
@@ -37,4 +39,13 @@ func GoVersionList(version string) ([]*GoVersion, error) {
 	}
 	err := s.Find(&envs)
 	return envs, err
+}
+
+func DelGoVersion(id int64) error {
+	v := &GoVersion{}
+	n, err := engine.ID(id).Delete(v)
+	if n != 1 {
+		return fmt.Errorf("delete affect line number:%d", n)
+	}
+	return err
 }

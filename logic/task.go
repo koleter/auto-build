@@ -103,7 +103,7 @@ func ListTask(wr http.ResponseWriter, r *http.Request) {
 		log.Debugf("check param error:%s", err)
 		projectid = 0
 	}
-	ts, err := model.ListTask(int64(projectid))
+	ts, err := model.ListTask(int64(projectid), 0)
 	if err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
@@ -478,4 +478,30 @@ func SetTaskAutoBuild(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeSuccess(wr, "更新成功")
+}
+
+func DelTask(wr http.ResponseWriter, r *http.Request) {
+	t := new(model.Task)
+	err := ParseParam(r, t)
+	if err != nil {
+		log.Errorf("check param error:%s", err)
+		writeError(wr, "params error", err.Error())
+		return
+	}
+
+	ts, err := model.GetTask(t.Id)
+	if err != nil {
+		log.Errorf("select sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	err = model.DelTask(ts.Id)
+	if err != nil {
+		log.Errorf("delete sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	writeSuccess(wr, "删除成功")
 }

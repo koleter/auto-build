@@ -229,3 +229,48 @@ func ListEnv(wr http.ResponseWriter, r *http.Request) {
 	}
 	writeJson(wr, envs)
 }
+
+func DelEnv(wr http.ResponseWriter, r *http.Request) {
+	e := &model.GoVersion{}
+	err := ParseParam(r, e)
+	if err != nil {
+		log.Errorf("check param error:%s", err)
+		writeError(wr, "params error", err.Error())
+		return
+	}
+
+	goenv, err := model.GetGoVersion(e.Id)
+	if err != nil {
+		log.Errorf("select sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	ts, err := model.ListTask(0, goenv.Id)
+	if err != nil {
+		log.Errorf("select sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	if len(ts) > 0 {
+		writeError(wr, "logic error", "some task use go env")
+		return
+	}
+
+	err = model.DelGoVersion(goenv.Id)
+	if err != nil {
+		log.Errorf("delete sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	err = os.RemoveAll(goenv.LocalPath)
+	if err != nil {
+		log.Errorf("os remove path %s error:%s", goenv.LocalPath, err)
+		writeError(wr, "logic error", err.Error())
+		return
+	}
+
+	writeSuccess(wr, "删除成功")
+}

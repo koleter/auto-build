@@ -6,16 +6,17 @@ import (
 )
 
 type Task struct {
-	Id        int64  `xorm:"pk" json:"id"`
-	ProjectId int64  `xorm:"index" json:"project_id"`
-	GoVersion int64  `xorm:"index" json:"go_version_id"` // envid
-	Branch    string `xorm:"varchar(10)" json:"branch"`
-	AutoBuild bool   `xorm:"Bool" json:"auto_build"`
-	MainFile  string `xorm:"varchar(20)" json:"main_file"` // 主文件
-	DestFile  string `xorm:"varchar(20)" json:"dest_file"` // 目标文件
-	DestOs    string `xorm:"varchar(10)" json:"dest_os"`   // 目标系统
-	DestArch  string `xorm:"varchar(10)" json:"dest_arch"` // 目标架构
-	Env       string `xorm:"varchar(255)" json:"env"`      // 环境变量key1=value1;key2=value2
+	Id        int64     `xorm:"pk" json:"id"`
+	ProjectId int64     `xorm:"index" json:"project_id"`
+	GoVersion int64     `xorm:"index" json:"go_version_id"` // envid
+	Branch    string    `xorm:"varchar(10)" json:"branch"`
+	AutoBuild bool      `xorm:"Bool" json:"auto_build"`
+	MainFile  string    `xorm:"varchar(20)" json:"main_file"` // 主文件
+	DestFile  string    `xorm:"varchar(20)" json:"dest_file"` // 目标文件
+	DestOs    string    `xorm:"varchar(10)" json:"dest_os"`   // 目标系统
+	DestArch  string    `xorm:"varchar(10)" json:"dest_arch"` // 目标架构
+	Env       string    `xorm:"varchar(255)" json:"env"`      // 环境变量key1=value1;key2=value2
+	DeletedAt time.Time `xorm:"deleted" json:"-"`
 }
 
 type TaskLog struct {
@@ -30,6 +31,7 @@ type TaskLog struct {
 	OutFilePath string    `xorm:"varchar(50)" json:"out_file_path"`
 	CreateAt    time.Time `xorm:"datetime created" json:"create_at"`
 	FinishAt    time.Time `xorm:"datetime updated" json:"finish_at"`
+	DeletedAt   time.Time `xorm:"deleted" json:"-"`
 }
 
 func InsertTask(t *Task) error {
@@ -95,11 +97,14 @@ func GetTask(id int64) (*Task, error) {
 	return t, nil
 }
 
-func ListTask(projectid int64) ([]*Task, error) {
+func ListTask(projectid int64, goverid int64) ([]*Task, error) {
 	ts := make([]*Task, 0)
 	s := engine.NewSession()
 	if projectid > 0 {
 		s.Where("project_id = ?", projectid)
+	}
+	if goverid > 0 {
+		s.And("go_version = ?", projectid)
 	}
 	err := s.Find(&ts)
 	return ts, err
@@ -146,4 +151,29 @@ func GetTaskLog(record_id int64) (*TaskLog, error) {
 	}
 
 	return t, nil
+}
+
+func DelTask(id int64) error {
+	s := engine.NewSession()
+	defer s.Close()
+
+	if err := s.Begin(); err != nil {
+		return err
+	}
+
+	t := &Task{}
+	n, err := s.ID(id).Delete(t)
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return fmt.Errorf("delete task affect line number:%d", n)
+	}
+
+	tl := &TaskLog{}
+	if _, err = s.Where("task_id = ?", id).Delete(tl); err != nil {
+		return err
+	}
+
+	return err
 }

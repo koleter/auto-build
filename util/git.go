@@ -54,6 +54,26 @@ func AddRemote(path, name, url string, insertOnly bool) error {
 	return cmd.Run()
 }
 
+func RmRemote(path, name string) error {
+	if !CheckIsGit(path) {
+		return fmt.Errorf("path:%s not a git", path)
+	}
+
+	exist, err := checkRemoteExist(path, name)
+	if err != nil {
+		return err
+	}
+
+	if !exist {
+		return fmt.Errorf("remote name:%s not exist", name)
+	}
+
+	cmd := exec.Command("git", "remote", "rm", name)
+	cmd.Dir = path
+
+	return RunCmd(cmd)
+}
+
 func checkRemoteExist(path, name string) (bool, error) {
 	log.Debug("git remote")
 	cmd := exec.Command("git", "remote")

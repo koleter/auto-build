@@ -181,3 +181,48 @@ func PullPorject(wr http.ResponseWriter, r *http.Request) {
 
 	writeSuccess(wr, "git pull success")
 }
+
+func DelPorject(wr http.ResponseWriter, r *http.Request) {
+	p := &model.Project{}
+	err := ParseParam(r, p)
+	if err != nil {
+		log.Errorf("check param error:%s", err)
+		writeError(wr, "param error", err.Error())
+		return
+	}
+
+	pro, err := model.GetProject(p.Id)
+	if err != nil {
+		log.Errorf("selet sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	ts, err := model.ListTask(pro.Id, 0)
+	if err != nil {
+		log.Errorf("selet sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	if len(ts) > 0 {
+		writeError(wr, "logic error", "project have build tasks")
+		return
+	}
+
+	err = model.DelProject(pro.Id)
+	if err != nil {
+		log.Errorf("delete sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	err = util.RmRemote(pro.LocalPath, defaultRemoteName)
+	if err != nil {
+		log.Errorf("delete git remote error:%s", err)
+		writeError(wr, "logic error", err.Error())
+		return
+	}
+
+	writeSuccess(wr, "删除成功")
+}

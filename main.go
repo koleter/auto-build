@@ -57,20 +57,31 @@ func main() {
 func route(c *config.Config) *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/", logic.Index).Methods(http.MethodGet)
+
 	r.HandleFunc("/api/goenv/add", logic.AddEnv).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/api/goenv/delete", logic.AddEnv).Methods(http.MethodDelete, http.MethodOptions) //TODO
 	r.HandleFunc("/api/goenv/list", logic.ListEnv).Methods(http.MethodGet)
+
 	r.HandleFunc("/api/project/add", logic.AddPorject).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/api/project/delete", logic.AddPorject).Methods(http.MethodDelete, http.MethodOptions) //TODO
 	r.HandleFunc("/api/project/pull", logic.PullPorject).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/project/list", logic.ListPorject).Methods(http.MethodGet)
+
 	r.HandleFunc("/api/task/add", logic.AddTask).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/api/task/delete", logic.AddTask).Methods(http.MethodDelete, http.MethodOptions) //TODO
 	r.HandleFunc("/api/task/list", logic.ListTask).Methods(http.MethodGet)
 	r.HandleFunc("/api/task/start", logic.StartTask).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/task/auto-build", logic.SetTaskAutoBuild).Methods(http.MethodPost, http.MethodOptions)
+
 	r.HandleFunc("/api/task/log/list", logic.ListTaskLog).Methods(http.MethodGet)
 	r.HandleFunc("/api/task/log/output", logic.GetTaskLogOutput).Methods(http.MethodGet)
+
 	r.HandleFunc("/webhook/{project}", logic.DoWebHook).Methods(http.MethodPost)
-	r.PathPrefix("/output/").Handler(http.StripPrefix("/output/", http.FileServer(http.Dir(c.DestPath)))) //
+
+	r.PathPrefix("/output/").Handler(http.StripPrefix("/output/", http.FileServer(http.Dir(c.DestPath))))
+
 	r.PathPrefix("/web/").Handler(http.StripPrefix("/web/", http.FileServer(http.Dir(c.WebPath))))
+
 	r.Use(mux.CORSMethodMiddleware(r))
 	return r
 }
