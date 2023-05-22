@@ -489,14 +489,14 @@ func DelTask(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts, err := model.GetTask(t.Id)
+	_, err = model.GetTask(t.Id)
 	if err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
 		return
 	}
 
-	err = model.DelTask(ts.Id)
+	err = model.DelTask(t.Id)
 	if err != nil {
 		log.Errorf("delete sql error:%s", err)
 		writeError(wr, "sql error", err.Error())

@@ -24,7 +24,7 @@ func InsertGoVersion(ge *GoVersion) error {
 
 func GetGoVersion(id int64) (*GoVersion, error) {
 	v := &GoVersion{}
-	has, err := engine.ID(id).Get(v)
+	has, err := engine.Where("id = ?", id).Get(v)
 	if !has {
 		return nil, fmt.Errorf("couldn't find record")
 	}

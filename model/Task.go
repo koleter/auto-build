@@ -103,8 +103,8 @@ type TaskInfo struct {
 	Version string `json:"version"`
 }
 
-func ListTask(projectid int64, goverid int64) ([]*Task, error) {
-	ts := make([]*Task, 0)
+func ListTask(projectid int64, goverid int64) ([]*TaskInfo, error) {
+	ts := make([]*TaskInfo, 0)
 	s := engine.NewSession()
 	s.Table("task").Join("INNER", "project", "task.project_id = project.id").
 		Join("INNER", "go_version", "task.go_version = go_version.id")
@@ -112,7 +112,7 @@ func ListTask(projectid int64, goverid int64) ([]*Task, error) {
 		s.Where("project_id = ?", projectid)
 	}
 	if goverid > 0 {
-		s.And("go_version = ?", projectid)
+		s.Where("go_version = ?", goverid)
 	}
 	err := s.Find(&ts)
 	return ts, err
@@ -183,5 +183,5 @@ func DelTask(id int64) error {
 		return err
 	}
 
-	return err
+	return s.Commit()
 }

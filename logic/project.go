@@ -198,7 +198,7 @@ func DelPorject(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts, err := model.ListTask(pro.Id, 0)
+	ts, err := model.ListTask(p.Id, 0)
 	if err != nil {
 		log.Errorf("selet sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
@@ -206,7 +206,7 @@ func DelPorject(wr http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(ts) > 0 {
-		writeError(wr, "logic error", "project have build tasks")
+		writeError(wr, "logic error", "请先删除该工程的任务")
 		return
 	}
 
