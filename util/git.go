@@ -186,6 +186,8 @@ func GetUrl(giturl string, token ...string) string {
 	case 2:
 		user = token[0]
 		password = token[1]
+	default:
+		return ""
 	}
 
 	user = url.QueryEscape(user)

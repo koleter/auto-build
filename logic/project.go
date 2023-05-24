@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hash-rabbit/auto-build/config"
 	"github.com/hash-rabbit/auto-build/model"
@@ -74,7 +75,14 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = util.AddRemote(p.LocalPath, defaultRemoteName, util.GetUrl(p.Url, p.Token), false)
+	var url string
+	if len(p.Token) > 0 {
+		url = util.GetUrl(p.Url, strings.Split(p.Token, " ")...)
+	} else {
+		url = p.Url
+	}
+
+	err = util.AddRemote(p.LocalPath, defaultRemoteName, url, false)
 	if err != nil {
 		log.Errorf("git add remote error:%s", err)
 		writeError(wr, "path error", "git remote error")
