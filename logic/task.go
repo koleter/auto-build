@@ -212,7 +212,7 @@ func (t *task) start() {
 	}
 	t.out_log.Info("create out put file success")
 
-	t.out_log.Infof("git checkout %s %s", t.t.Branch)
+	t.out_log.Infof("git checkout %s", t.t.Branch)
 	t.err = util.Checkout(t.p.LocalPath, defaultRemoteName, t.t.Branch)
 	if t.err != nil {
 		t.out_log.Error(t.err)
