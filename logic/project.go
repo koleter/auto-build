@@ -1,12 +1,10 @@
 package logic
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/hash-rabbit/auto-build/config"
 	"github.com/hash-rabbit/auto-build/model"
@@ -67,20 +65,16 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if path_exist {
-		err := util.InitGit(p.LocalPath)
+	if !path_exist {
+		err = util.Clone(p.LocalPath, p.Url, p.Token)
 		if err != nil {
-			log.Errorf("git init error:%s", err)
-			writeError(wr, "path error", "git init error")
+			log.Errorf("path %s check error", p.LocalPath)
+			writeError(wr, "path error", "path check error")
 			return
 		}
-	} else {
-		log.Errorf("path %s check error", p.LocalPath)
-		writeError(wr, "path error", "path exist error")
-		return
 	}
 
-	err = util.AddRemote(p.LocalPath, defaultRemoteName, GetUrl(p.Url, p.Token), false)
+	err = util.AddRemote(p.LocalPath, defaultRemoteName, util.GetUrl(p.Url, p.Token), false)
 	if err != nil {
 		log.Errorf("git add remote error:%s", err)
 		writeError(wr, "path error", "git remote error")
@@ -119,27 +113,6 @@ func PathExists(path string) (bool, error) {
 		}
 	}
 	return false, err
-}
-
-// giturl 为 git 地址(http[s]),不用带秘钥
-// 如果是 token 模式,则不输入 username
-// 如果是 user:password 模式,则 token 就是 password
-func GetUrl(giturl string, token string, username ...string) string {
-	if len(token) == 0 { //公有库
-		return giturl
-	}
-
-	user := "oauth2"
-	if len(username) > 0 {
-		user = url.QueryEscape(username[0])
-	}
-
-	if strings.HasPrefix(giturl, "https://") {
-		return fmt.Sprintf("https://%s:%s@%s", user, token, strings.TrimPrefix(giturl, "https://"))
-	} else if strings.HasPrefix(giturl, "http://") {
-		return fmt.Sprintf("http://%s:%s@%s", user, token, strings.TrimPrefix(giturl, "http://"))
-	}
-	return ""
 }
 
 func ListPorject(wr http.ResponseWriter, r *http.Request) {

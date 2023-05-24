@@ -1,131 +1,138 @@
 package util
 
 import (
-	"context"
 	"fmt"
-	"os/exec"
-	"strconv"
+	"io"
+	"net/url"
 	"strings"
-	"time"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/subchen/go-log"
 )
 
-func InitGit(path string) error {
-	if CheckIsGit(path) {
-		return nil
+// Clone git clone url to path,token is user token,use: Clone(path,url,token)
+// see https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
+// if use username:password,should input Clone(path,url,username,password)
+// for public repo use: Clone(path,url)
+func Clone(path, url string, token ...string) error {
+	op := &git.CloneOptions{
+		URL: url,
 	}
 
-	log.Infof("git init")
-	cmd := exec.Command("git", "init")
-	cmd.Dir = path
-
-	log.Infof("run cmd:%s", cmd.String())
-
-	return cmd.Run()
-}
-
-// url如果是私有工程需要带秘钥
-// insertOnly: true:如果远程名称已存在,则返回 false:如果远程名称存在则更新 url
-func AddRemote(path, name, url string, insertOnly bool) error {
-	if !CheckIsGit(path) {
-		return fmt.Errorf("path:%s not a git", path)
-	}
-
-	exist, err := checkRemoteExist(path, name)
-	if err != nil {
-		return err
-	}
-
-	if exist && insertOnly {
-		return fmt.Errorf("remote name:%s has exist", name)
-	}
-
-	option := "add"
-	if exist {
-		option = "set-url"
-	}
-	log.Debug("git", "remote", option, name, url)
-	cmd := exec.Command("git", "remote", option, name, url)
-	cmd.Dir = path
-
-	log.Infof("run cmd:%s", cmd.String())
-
-	return cmd.Run()
-}
-
-func RmRemote(path, name string) error {
-	if !CheckIsGit(path) {
-		return fmt.Errorf("path:%s not a git", path)
-	}
-
-	exist, err := checkRemoteExist(path, name)
-	if err != nil {
-		return err
-	}
-
-	if !exist {
-		return fmt.Errorf("remote name:%s not exist", name)
-	}
-
-	cmd := exec.Command("git", "remote", "rm", name)
-	cmd.Dir = path
-
-	return RunCmd(cmd)
-}
-
-func checkRemoteExist(path, name string) (bool, error) {
-	log.Debug("git remote")
-	cmd := exec.Command("git", "remote")
-	cmd.Dir = path
-	log.Infof("run cmd:%s", cmd.String())
-
-	remotes, err := cmd.CombinedOutput()
-	if err != nil {
-		return false, err
-	}
-
-	for _, str := range strings.Split(strings.TrimSpace(string(remotes)), "\n") {
-		if name == str {
-			return true, nil
+	switch len(token) {
+	case 1:
+		op.Auth = &http.BasicAuth{
+			Username: "oauth2",
+			Password: token[0],
+		}
+	case 2:
+		op.Auth = &http.BasicAuth{
+			Username: token[0],
+			Password: token[1],
 		}
 	}
 
-	return false, nil
+	_, err := git.PlainClone(path, false, op)
+	return err
 }
 
-// 默认远程和本地分支名称一样
+// url如果是私有工程需要带秘钥
+// url 是已经配好用户名密码的 url
+// insertOnly: true:如果远程名称已存在,则返回 false:如果远程名称存在则更新 url
+func AddRemote(path, name, url string, insertOnly bool) error {
+	r, err := git.PlainOpen(path)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Remote(name)
+	if err != nil && err != git.ErrRemoteNotFound {
+		return err
+	}
+
+	// 如果存在先删除
+	if err == nil {
+		if insertOnly {
+			return fmt.Errorf("remote exist but insert only")
+		}
+		r.DeleteRemote(name)
+	}
+
+	op := &config.RemoteConfig{
+		Name: name,
+		URLs: []string{url},
+	}
+
+	_, err = r.CreateRemote(op)
+	return err
+}
+
+func RmRemote(path, name string) error {
+	r, err := git.PlainOpen(path)
+	if err != nil {
+		return err
+	}
+
+	return r.DeleteRemote(name)
+}
+
+// 请确保目前在 branch 分支上,否则会自动进行合并 branch 到当前分支
 func Pull(path, remote, branch string) error {
-	if !CheckIsGit(path) {
-		return fmt.Errorf("path:%s not a git", path)
+	log.Infof("git pull %s %s \tpath:%s", remote, branch, path)
+	r, err := git.PlainOpen(path)
+	if err != nil {
+		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "git", "pull", remote, branch)
-	cmd.Dir = path
-
-	return RunCmd(cmd)
-}
-
-func Checkout(path, name string) error {
-	if !CheckIsGit(path) {
-		return fmt.Errorf("path:%s not a git", path)
+	w, err := r.Worktree()
+	if err != nil {
+		return err
 	}
 
-	cmd := exec.Command("git", "checkout", name)
-	cmd.Dir = path
+	op := &git.PullOptions{
+		RemoteName: remote,
+	}
 
-	return RunCmd(cmd)
+	if len(branch) > 0 {
+		op.ReferenceName = plumbing.NewBranchReferenceName(branch)
+	}
+
+	err = w.Pull(op)
+	if err == git.NoErrAlreadyUpToDate {
+		return nil
+	}
+
+	return err
 }
 
-func CheckIsGit(path string) bool {
-	log.Debug("git rev-parse --show-toplevel")
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
-	cmd.Dir = path
-	isgit, _ := cmd.CombinedOutput()
-	return strings.TrimSpace(string(isgit)) == path
+// 目前仅支持 branch 模式
+func Checkout(path, remote, branch string) error {
+	r, err := git.PlainOpen(path)
+	if err != nil {
+		return err
+	}
+
+	exist := checkBranchExist(r, branch)
+	if !exist {
+		r.CreateBranch(&config.Branch{
+			Name:   branch,
+			Remote: remote,
+			Merge:  plumbing.NewBranchReferenceName(branch),
+		})
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return err
+	}
+
+	return w.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.NewBranchReferenceName(branch),
+		Create: !exist,
+	})
 }
 
 type LogItem struct {
@@ -133,39 +140,80 @@ type LogItem struct {
 	Commit string
 }
 
-func GitLog(path string, name string, n int) ([]*LogItem, error) {
-	if !CheckIsGit(path) {
-		return nil, fmt.Errorf("path:%s not a git", path)
-	}
-
-	resu := make([]*LogItem, 0)
-
-	cmd := exec.Command("git", "log", name, "--oneline", "-"+strconv.Itoa(n))
-	cmd.Dir = path
-
-	log.Infof("run cmd:%s", cmd.String())
-
-	logs, err := cmd.CombinedOutput()
+func GitLog(path string, n int) ([]*LogItem, error) {
+	r, err := git.PlainOpen(path)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, str := range strings.Split(strings.TrimSpace(string(logs)), "\n") {
-		start, end := strings.Index(str, "("), strings.Index(str, ")")
-		if start >= 0 && end >= 0 {
-			str = str[:start] + str[end+1:]
-		}
+	op := &git.LogOptions{}
 
-		params := strings.Split(str, " ")
-		if len(params) < 2 {
-			log.Errorf("log:%s parse error", str)
-			continue
-		}
+	list, err := r.Log(op)
+	if err != nil {
+		return nil, err
+	}
+	defer list.Close()
 
+	resu := make([]*LogItem, 0)
+	for i := 0; i < n; i++ {
+		commit, err := list.Next()
+		if err == io.EOF {
+			return resu, nil
+		}
+		if err != nil {
+			return nil, err
+		}
 		resu = append(resu, &LogItem{
-			Sha1:   params[0],
-			Commit: strings.Join(params[1:], ""),
+			Sha1:   commit.Hash.String(),
+			Commit: commit.Message,
 		})
 	}
 	return resu, nil
+}
+
+// giturl 为 git 地址(http[s]),不用带秘钥
+// 公共仓库,token 不填
+// 单个秘钥:token 为秘钥
+// 用户名密码:token 为username,passwoed 的字符串数组
+func GetUrl(giturl string, token ...string) string {
+	if len(token) == 0 { //公有库
+		return giturl
+	}
+
+	user := "oauth2"
+	password := ""
+	switch len(token) {
+	case 1:
+		password = token[0]
+	case 2:
+		user = token[0]
+		password = token[1]
+	}
+
+	user = url.QueryEscape(user)
+	password = url.QueryEscape(password)
+
+	if strings.HasPrefix(giturl, "https://") {
+		return fmt.Sprintf("https://%s:%s@%s", user, password, strings.TrimPrefix(giturl, "https://"))
+	} else if strings.HasPrefix(giturl, "http://") {
+		return fmt.Sprintf("http://%s:%s@%s", user, password, strings.TrimPrefix(giturl, "http://"))
+	}
+
+	return "" //出错返回空,后面会检测出来
+}
+
+func checkBranchExist(r *git.Repository, branch string) bool {
+	bs, _ := r.Branches()
+	defer bs.Close()
+
+	for {
+		item, err := bs.Next()
+		if err != nil {
+			break
+		}
+		if branch == item.Name().Short() {
+			return true
+		}
+	}
+	return false
 }

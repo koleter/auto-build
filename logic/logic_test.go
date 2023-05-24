@@ -1,6 +1,9 @@
 package logic
 
-import "testing"
+import (
+	"net/url"
+	"testing"
+)
 
 func TestRep(t *testing.T) {
 	version, err := parseUrl("go1.20.3.linux-amd64.tar.gz")
@@ -15,4 +18,17 @@ func TestDownlaod(t *testing.T) {
 func TestTar(t *testing.T) {
 	err := tarFile("../goenv/go1.20.3.linux-amd64.tar.gz", "../goenv", false)
 	t.Logf("err:%v", err)
+}
+
+func TestUrl(t *testing.T) {
+	exs := []string{
+		"git@igit.58corp.com:mengfanyu03/auto-build-go.git",
+		"https://igit.58corp.com/mengfanyu03/auto-build-go.git",
+	}
+
+	for _, v := range exs {
+		_, err := url.Parse(v)
+		t.Logf("%s", err)
+	}
+
 }

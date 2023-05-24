@@ -83,7 +83,7 @@ func getBranch(ref string) string {
 func autobuild(taskid int64) {
 	tk, err := model.GetTask(taskid)
 	if err != nil {
-		log.Error("get task error:%s", err)
+		log.Errorf("get task error:%s", err)
 		return
 	}
 

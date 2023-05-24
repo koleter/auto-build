@@ -253,7 +253,7 @@ func DelEnv(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("%+v", ts)
+	log.Infof("%+v", ts)
 
 	if len(ts) > 0 {
 		writeError(wr, "logic error", "请先删除使用该环境的任务")

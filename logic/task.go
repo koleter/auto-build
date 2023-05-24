@@ -122,7 +122,7 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 
 	tk, err := model.GetTask(ti)
 	if err != nil {
-		log.Error("get task error:%s", err)
+		log.Errorf("get task error:%s", err)
 		writeError(wr, "sql error", err.Error())
 		return
 	}
@@ -220,7 +220,7 @@ func (t *task) start() {
 	}
 	t.out_log.Info("git pull success")
 
-	t.err = util.Checkout(t.p.LocalPath, t.t.Branch)
+	t.err = util.Checkout(t.p.LocalPath, defaultRemoteName, t.t.Branch)
 	if t.err != nil {
 		t.out_log.Error(t.err)
 		log.Error(t.err)
@@ -229,7 +229,7 @@ func (t *task) start() {
 	t.out_log.Info("git checkout success")
 
 	t.out_log.Infof("git log %s", t.t.Branch)
-	ls, err := util.GitLog(t.p.LocalPath, t.t.Branch, 1)
+	ls, err := util.GitLog(t.p.LocalPath, 1)
 	if err != nil {
 		t.out_log.Error(err)
 		t.err = err
@@ -334,7 +334,7 @@ func (t *task) start() {
 	log.Debugf("task log id:%d file url:%s", t.id, url)
 	model.UpdateTaskLogUrl(t.id, url)
 
-	t.out_log.Info("task log id:%d file url:%s", t.id, url)
+	t.out_log.Infof("task log id:%d file url:%s", t.id, url)
 }
 
 func (t *task) createOutFile() {
@@ -379,7 +379,7 @@ func (t *task) clean() {
 }
 
 func (t *task) checkoutMaster() {
-	err := util.Checkout(t.p.LocalPath, t.p.MainBranch)
+	err := util.Checkout(t.p.LocalPath, defaultRemoteName, t.p.MainBranch)
 	if err != nil {
 		log.Error(err)
 	}
