@@ -10,7 +10,6 @@ import (
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/subchen/go-log"
 )
 
 // Clone git clone url to path,token is user token,use: Clone(path,url,token)
@@ -81,7 +80,6 @@ func RmRemote(path, name string) error {
 
 // 请确保目前在 branch 分支上,否则会自动进行合并 branch 到当前分支
 func Pull(path, remote, branch string) error {
-	log.Infof("git pull %s %s \tpath:%s", remote, branch, path)
 	r, err := git.PlainOpen(path)
 	if err != nil {
 		return err

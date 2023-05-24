@@ -212,14 +212,7 @@ func (t *task) start() {
 	}
 	t.out_log.Info("create out put file success")
 
-	t.out_log.Infof("git pull %s %s", defaultRemoteName, t.t.Branch+":"+t.t.Branch)
-	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch+":"+t.t.Branch) //TODO:这块很容易卡住,需要排查
-	if t.err != nil {
-		t.out_log.Error(t.err)
-		return
-	}
-	t.out_log.Info("git pull success")
-
+	t.out_log.Infof("git checkout %s %s", t.t.Branch)
 	t.err = util.Checkout(t.p.LocalPath, defaultRemoteName, t.t.Branch)
 	if t.err != nil {
 		t.out_log.Error(t.err)
@@ -227,6 +220,14 @@ func (t *task) start() {
 		return
 	}
 	t.out_log.Info("git checkout success")
+
+	t.out_log.Infof("git pull %s %s", defaultRemoteName, t.t.Branch)
+	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch) //TODO:这块很容易卡住,需要排查
+	if t.err != nil {
+		t.out_log.Error(t.err)
+		return
+	}
+	t.out_log.Info("git pull success")
 
 	t.out_log.Infof("git log %s", t.t.Branch)
 	ls, err := util.GitLog(t.p.LocalPath, 1)
