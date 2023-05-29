@@ -12,7 +12,7 @@ nohup ./auto-build ./config.toml > nohup.log 2>&1 &
 ## 配置文件说明
 ```toml
 port = 8000 # 监听端口
-log_path = "./buildlog/" #编译/程序运行 log
+log_path = "./buildlog/" # 编译/程序运行 log
 go_env_path = "./goenv/" # go 环境安装目录
 default_go_path = "./workspace/" # 针对 gomod 的 gopath 目录(缓存包)
 dest_path = "./output/" # 输出文件目录
@@ -21,8 +21,11 @@ web_path = "./dist/" # 前端目录,可以用下面的前端项目编译后的 d
 ```
 
 ## TODO
-- [ ] webhook接到请求后编译
-- [ ] 删除 goenv/task/project
+- [x] webhook接到请求后编译
+- [x] 删除 goenv/task/project
 - [ ] 添加 golang/新建项目添加进度
+- [ ] git后端问题
+- [ ] url 优化,每个任务一个单独的 url,然后工程有个 latest url ,当选择工程的可以快捷下载最新的
+
 ## 前端
 [链接](https://github.com/hash-rabbit/auto-build-web)

@@ -6,11 +6,11 @@ import (
 )
 
 type Project struct {
-	Id         int64     `xorm:"pk" json:"id"` //TODO:因为前端精度丢失问题,暂将 id 转为 string
-	Name       string    `xorm:"varchar(20) not null index" json:"name"`
+	Id         int64     `xorm:"pk" json:"id"`
+	Name       string    `xorm:"varchar(30) not null index" json:"name"`
 	LocalPath  string    `xorm:"varchar(50) not null"  json:"path"`
 	Url        string    `xorm:"varchar(50)"  json:"url"`
-	MainBranch string    `xorm:"varchar(20) default master" json:"main_branch"`
+	MainBranch string    `xorm:"varchar(30) default master" json:"main_branch"`
 	Token      string    `xorm:"varchar(50)"  json:"token"`
 	GoMod      bool      `xorm:"bool" json:"go_mod"`
 	WorkSpace  string    `xorm:"varchar(50)" json:"workspace"` //only go path(not mod) used

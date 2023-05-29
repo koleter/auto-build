@@ -1,6 +1,8 @@
 package logic
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,22 +27,13 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 	}
 	log.Debugf("recv param:%+v", p)
 
-	if len(p.Name) == 0 {
-		writeError(wr, "param error", "project name length == 0")
-		return
-	}
-
-	if ps, _ := model.ListProject(p.Name); len(ps) > 0 {
-		writeError(wr, "param error", "project name has exist")
-		return
-	}
-
-	_, err = url.Parse(p.Url)
+	err = checkProject(p)
 	if err != nil {
-		log.Errorf("url %s parse error:%s", p.Url, err)
-		writeError(wr, "param error", "url parse error")
+		log.Errorf("check param error:%s", err)
+		writeError(wr, "param error", err.Error())
 		return
 	}
+	log.Debugf("project:%s check success", p.Name)
 
 	if p.GoMod {
 		p.WorkSpace = config.C.DefaultGoPath
@@ -52,22 +45,16 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.LocalPath, err = filepath.Abs(p.LocalPath)
-	if err != nil {
-		log.Errorf("path %s set error", p.LocalPath)
-		writeError(wr, "path error", "path set error")
-		return
-	}
-
 	path_exist, err := PathExists(p.LocalPath)
 	if err != nil {
-		log.Errorf("path %s check error", p.LocalPath)
-		writeError(wr, "path error", "path check error")
+		log.Errorf("path %s check error:%s", p.LocalPath, err)
+		writeError(wr, "path error", err.Error())
 		return
 	}
 
 	if !path_exist {
-		err = util.Clone(p.LocalPath, p.Url, p.Token)
+		log.Debugf("clone %s to %s token:%s", p.Url, p.LocalPath, p.Token)
+		err = util.Clone(p.LocalPath, p.Url, strings.Split(p.Token, " ")...)
 		if err != nil {
 			log.Errorf("path %s check error", p.LocalPath)
 			writeError(wr, "path error", "path check error")
@@ -82,6 +69,7 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 		url = p.Url
 	}
 
+	log.Debugf("add remote url:%s", url)
 	err = util.AddRemote(p.LocalPath, defaultRemoteName, url, false)
 	if err != nil {
 		log.Errorf("git add remote error:%s", err)
@@ -89,6 +77,7 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Debug("git pull")
 	err = util.Pull(p.LocalPath, defaultRemoteName, "")
 	if err != nil {
 		log.Errorf("git pull error:%s", err)
@@ -106,21 +95,41 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 	writeSuccess(wr, "add project ok")
 }
 
+func checkProject(p *model.Project) error {
+	if len(p.Name) == 0 || len(p.Name) > 30 {
+		return errors.New("name 长度在  1-30 个字符以内")
+	}
+
+	if _, err := model.GetProjectByName(p.Name); err == nil {
+		return fmt.Errorf("name:%s 已存在", p.Name)
+	}
+
+	u, err := url.Parse(p.Url)
+	if err != nil {
+		return err
+	}
+	if !strings.HasSuffix(u.EscapedPath(), ".git") {
+		return fmt.Errorf("url should include .git")
+	}
+
+	if !filepath.IsAbs(p.LocalPath) {
+		return fmt.Errorf("local path should in abs")
+	}
+
+	return nil
+}
+
 // PathExists 判断文件夹是否存在
 func PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
+	fi, err := os.Stat(path)
 	if err == nil {
+		if !fi.IsDir() {
+			return true, fmt.Errorf("path:%s is file", path)
+		}
 		return true, nil
 	}
-	if os.IsNotExist(err) {
-		err := os.MkdirAll(path, os.ModePerm)
-		if err != nil {
-			log.Errorf("mkdir failed![%v]\n", err)
-		} else {
-			return true, nil
-		}
-	}
-	return false, err
+
+	return os.IsExist(err), nil
 }
 
 func ListPorject(wr http.ResponseWriter, r *http.Request) {

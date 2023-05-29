@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
 func TestClone(t *testing.T) {
@@ -104,10 +105,20 @@ func TestLog(t *testing.T) {
 }
 
 func TestGit(t *testing.T) {
-	path := "./wos-web"
-	// url := "https://igit.58corp.com/storage/wos-web.git"
-	remote := "test"
-	branch := "feat-cmdb-cluster"
+	path := "./wtable-web"
+	// url := "https://igit.58corp.com/storage/wtable-web.git"
+	token := "vxfzUdXE11Rb25JnVYpW"
+	// remote := "test"
+	// branch := "feat-cmdb-cluster"
+
+	// r, err := git.PlainClone(path, false, &git.CloneOptions{
+	// 	URL:  url,
+	// 	Auth: &http.BasicAuth{Username: "oauth2", Password: token},
+	// })
+	// if err != nil {
+	// 	t.Error(err)
+	// 	return
+	// }
 
 	r, err := git.PlainOpen(path)
 	if err != nil {
@@ -115,7 +126,62 @@ func TestGit(t *testing.T) {
 		return
 	}
 
-	wt, _ := r.Worktree()
+	re, err := r.Remote("origin")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	re.Fetch(&git.FetchOptions{})
+
+	list, err := re.List(&git.ListOptions{
+		Auth: &http.BasicAuth{Username: "oauth2", Password: token},
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for _, l := range list {
+
+		if l.Name().IsBranch() {
+			t.Log(l)
+			t.Log(l.Hash())
+		}
+		//  else {
+		// 	// t.Log(l.Type())
+		// }
+	}
+
+	tgs, err := r.Tags()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	tgs.ForEach(func(r *plumbing.Reference) error {
+		t.Log(r)
+		return nil
+	})
+
+	// err = r.CreateBranch(&config.Branch{
+	// 	Name:   "build_test",
+	// 	Remote: "origin",
+	// 	Merge:  plumbing.NewBranchReferenceName("master"),
+	// })
+	// if err != nil {
+	// 	t.Error(err)
+	// 	return
+	// }
+
+	// wt, _ := r.Worktree()
+	// wt.Checkout(&git.CheckoutOptions{
+	// 	Hash: ,
+	// })
+	// r.ResolveRevision()
+	// r.BlobObjects()
+	// r.BlobObject()
+	// r.Fetch()
 
 	// t.Log(r.CreateBranch(&config.Branch{
 	// 	Name:   branch,
@@ -128,10 +194,10 @@ func TestGit(t *testing.T) {
 	// 	Create: true,
 	// }))
 
-	t.Log(wt.Pull(&git.PullOptions{
-		RemoteName:    remote,
-		ReferenceName: plumbing.NewBranchReferenceName(branch),
-	}))
+	// t.Log(wt.Pull(&git.PullOptions{
+	// 	RemoteName:    remote,
+	// 	ReferenceName: plumbing.NewBranchReferenceName(branch),
+	// }))
 
 	// bs, _ := r.Branches()
 
