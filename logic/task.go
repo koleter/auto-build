@@ -339,7 +339,7 @@ func (t *task) start() {
 }
 
 func (t *task) createOutFile() {
-	outfilepath := path.Join(config.C.LogPath, t.p.Name, t.t.Branch,
+	outfilepath := path.Join(config.C.RecordPath, t.p.Name, t.t.Branch,
 		fmt.Sprintf("%s.%d.out.log", t.t.DestFile, t.id))
 	model.UpdateTaskLogOut(t.id, outfilepath)
 	t.out_log, t.err = t.newLog(outfilepath)

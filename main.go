@@ -27,7 +27,7 @@ func main() {
 		log.Panicf("create dir error:%s", err)
 	}
 
-	l.SetLogFileName(filepath.Join(config.C.Log, "auto-build.log"))
+	l.SetLogFileName(filepath.Join(config.C.LogPath, "auto-build.log"), config.C.LogLevel)
 
 	err = model.InitSqlLite(config.C.SqlFile)
 	if err != nil {
@@ -59,16 +59,16 @@ func route(c *config.Config) *mux.Router {
 	r.HandleFunc("/", logic.Index).Methods(http.MethodGet)
 
 	r.HandleFunc("/api/goenv/add", logic.AddEnv).Methods(http.MethodPost, http.MethodOptions)
-	r.HandleFunc("/api/goenv/delete", logic.DelEnv).Methods(http.MethodDelete, http.MethodOptions) //TODO
+	r.HandleFunc("/api/goenv/delete", logic.DelEnv).Methods(http.MethodDelete, http.MethodOptions)
 	r.HandleFunc("/api/goenv/list", logic.ListEnv).Methods(http.MethodGet)
 
 	r.HandleFunc("/api/project/add", logic.AddPorject).Methods(http.MethodPost, http.MethodOptions)
-	r.HandleFunc("/api/project/delete", logic.DelPorject).Methods(http.MethodDelete, http.MethodOptions) //TODO
+	r.HandleFunc("/api/project/delete", logic.DelPorject).Methods(http.MethodDelete, http.MethodOptions)
 	r.HandleFunc("/api/project/pull", logic.PullPorject).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/project/list", logic.ListPorject).Methods(http.MethodGet)
 
 	r.HandleFunc("/api/task/add", logic.AddTask).Methods(http.MethodPost, http.MethodOptions)
-	r.HandleFunc("/api/task/delete", logic.DelTask).Methods(http.MethodDelete, http.MethodOptions) //TODO
+	r.HandleFunc("/api/task/delete", logic.DelTask).Methods(http.MethodDelete, http.MethodOptions)
 	r.HandleFunc("/api/task/list", logic.ListTask).Methods(http.MethodGet)
 	r.HandleFunc("/api/task/start", logic.StartTask).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/task/auto-build", logic.SetTaskAutoBuild).Methods(http.MethodPost, http.MethodOptions)
@@ -87,8 +87,8 @@ func route(c *config.Config) *mux.Router {
 }
 
 func checkDir(c *config.Config) error {
-	c.LogPath, _ = filepath.Abs(c.LogPath)
-	err := os.MkdirAll(c.LogPath, os.ModePerm)
+	c.RecordPath, _ = filepath.Abs(c.RecordPath)
+	err := os.MkdirAll(c.RecordPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -112,5 +112,6 @@ func checkDir(c *config.Config) error {
 	}
 
 	c.WebPath, _ = filepath.Abs(c.WebPath)
+	c.LogPath, _ = filepath.Abs(c.LogPath)
 	return nil
 }

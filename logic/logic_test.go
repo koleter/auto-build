@@ -24,11 +24,15 @@ func TestUrl(t *testing.T) {
 	exs := []string{
 		"git@igit.58corp.com:mengfanyu03/auto-build-go.git",
 		"https://igit.58corp.com/mengfanyu03/auto-build-go.git",
+		"https://igit.58corp.com/mengfanyu03/auto-build-go.git?param=lll",
 	}
 
 	for _, v := range exs {
-		_, err := url.Parse(v)
-		t.Logf("%s", err)
+		u, err := url.Parse(v)
+		if err != nil {
+			continue
+		}
+		t.Log(u.EscapedPath())
 	}
 
 }

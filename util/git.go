@@ -65,8 +65,12 @@ func AddRemote(path, name, url string, insertOnly bool) error {
 		URLs: []string{url},
 	}
 
-	_, err = r.CreateRemote(op)
-	return err
+	re, err := r.CreateRemote(op)
+	if err != nil {
+		return err
+	}
+
+	return re.Fetch(&git.FetchOptions{})
 }
 
 func RmRemote(path, name string) error {
@@ -99,6 +103,26 @@ func Pull(path, remote, branch string) error {
 	}
 
 	err = w.Pull(op)
+	if err == git.NoErrAlreadyUpToDate {
+		return nil
+	}
+
+	return err
+}
+
+// 请确保目前在 branch 分支上,否则会自动进行合并 branch 到当前分支
+func Fetch(path, remote string) error {
+	r, err := git.PlainOpen(path)
+	if err != nil {
+		return err
+	}
+
+	re, err := r.Remote(remote)
+	if err != nil {
+		return err
+	}
+
+	err = re.Fetch(&git.FetchOptions{})
 	if err == git.NoErrAlreadyUpToDate {
 		return nil
 	}
