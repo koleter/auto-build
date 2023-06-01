@@ -6,7 +6,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/hash-rabbit/auto-build/config"
@@ -215,4 +218,81 @@ func DelPorject(wr http.ResponseWriter, r *http.Request) {
 	}
 
 	writeSuccess(wr, "删除成功")
+}
+
+type FileInfo struct {
+	Value  string `json:"value"`
+	Label  string `jsno:"label"`
+	IsLeaf bool   `json:"isLeaf"`
+}
+
+func ListDir(wr http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	if err != nil {
+		log.Errorf("parse param id error:%s", err)
+		writeError(wr, "param error", err.Error())
+		return
+	}
+
+	p, err := model.GetProject(id)
+	if err != nil {
+		log.Errorf("selet sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	pathPre := path.Join(p.LocalPath, r.FormValue("path"))
+	entrys, err := os.ReadDir(pathPre)
+	if err != nil {
+		log.Errorf("read dir error:%s", err)
+		writeError(wr, "logic error", err.Error())
+		return
+	}
+
+	resu := make([]*FileInfo, 0)
+	for _, e := range entrys {
+		resu = append(resu, &FileInfo{
+			Label:  e.Name(),
+			Value:  path.Join(r.FormValue("path"), e.Name()),
+			IsLeaf: !e.IsDir(),
+		})
+	}
+
+	writeJson(wr, resu)
+}
+
+func ListBranch(wr http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	if err != nil {
+		log.Errorf("parse param id error:%s", err)
+		writeError(wr, "param error", err.Error())
+		return
+	}
+
+	p, err := model.GetProject(id)
+	if err != nil {
+		log.Errorf("selet sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
+		return
+	}
+
+	err = util.Fetch(p.LocalPath, defaultRemoteName)
+	if err != nil {
+		log.Errorf("git fetch error:%s", err)
+		writeError(wr, "logic error", err.Error())
+		return
+	}
+
+	branchs, err := util.BranchList(p.LocalPath, defaultRemoteName)
+	if err != nil {
+		log.Errorf("get branch list error:%s", err)
+		writeError(wr, "logic error", err.Error())
+		return
+	}
+
+	sort.Slice(branchs, func(i, j int) bool {
+		return branchs[i] < branchs[j]
+	})
+
+	writeJson(wr, branchs)
 }

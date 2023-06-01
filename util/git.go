@@ -110,7 +110,6 @@ func Pull(path, remote, branch string) error {
 	return err
 }
 
-// 请确保目前在 branch 分支上,否则会自动进行合并 branch 到当前分支
 func Fetch(path, remote string) error {
 	r, err := git.PlainOpen(path)
 	if err != nil {
@@ -128,6 +127,32 @@ func Fetch(path, remote string) error {
 	}
 
 	return err
+}
+
+func BranchList(path, remote string) ([]string, error) {
+	r, err := git.PlainOpen(path)
+	if err != nil {
+		return nil, err
+	}
+
+	re, err := r.Remote(remote)
+	if err != nil {
+		return nil, err
+	}
+
+	refs, err := re.List(&git.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	resu := make([]string, 0)
+	for _, re := range refs {
+		if re.Name().IsBranch() {
+			resu = append(resu, re.Name().Short())
+		}
+	}
+
+	return resu, nil
 }
 
 // 目前仅支持 branch 模式
