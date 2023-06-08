@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+// build status
+const (
+	Init = iota
+	Running
+	Success
+	Failed
+)
+
 type Task struct {
 	Id        int64     `xorm:"pk" json:"id"`
 	ProjectId int64     `xorm:"index" json:"project_id"`
@@ -184,4 +192,36 @@ func DelTask(id int64) error {
 	}
 
 	return s.Commit()
+}
+
+func CountTaskLog(start, end time.Time) (int64, error) {
+	return engine.Where("create_at > ?", start).And("create_at <= ?", end).Count(new(TaskLog))
+}
+
+func CountSuccessTaskLog(start, end time.Time) (int64, error) {
+	return engine.Where("create_at > ?", start).And("create_at <= ?", end).And("Status = ?", Success).Count(new(TaskLog))
+}
+
+type DataCount struct {
+	Date  string //2006-01-02
+	Count int
+}
+
+func Count30DayTaskLog() ([]*DataCount, error) {
+	ds := make([]*DataCount, 0)
+	start := time.Now().AddDate(0, 0, -30)
+	err := engine.Table("task_log").Where("create_at >= ?", time.Date(start.Year(), start.Month(),
+		start.Day(), 0, 0, 0, 0, time.Local)).Select("strftime('%Y-%m-%d', create_at) date, count(*) count").
+		GroupBy("strftime('%Y-%m-%d', create_at)").Find(&ds)
+	return ds, err
+}
+
+// TODO 获取最新的 10 个项目
+func Count10LatestTask() {
+
+}
+
+// TODO 获取编译最多的十个项目
+func Count10MaxTask() {
+
 }

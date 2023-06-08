@@ -58,6 +58,8 @@ func route(c *config.Config) *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/", logic.Index).Methods(http.MethodGet)
 
+	r.HandleFunc("/api/home/info", logic.HomeInfo).Methods(http.MethodGet)
+
 	r.HandleFunc("/api/goenv/add", logic.AddEnv).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/goenv/delete", logic.DelEnv).Methods(http.MethodDelete, http.MethodOptions)
 	r.HandleFunc("/api/goenv/list", logic.ListEnv).Methods(http.MethodGet)

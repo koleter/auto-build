@@ -101,7 +101,7 @@ func autobuild(taskid int64) {
 
 	tl := &model.TaskLog{
 		TaskId: taskid,
-		Status: Init,
+		Status: model.Init,
 	}
 
 	err = model.InsertTaskLog(tl)

@@ -20,14 +20,6 @@ import (
 	"github.com/subchen/go-log"
 )
 
-// build status
-const (
-	Init = iota
-	Running
-	Success
-	Failed
-)
-
 func AddTask(wr http.ResponseWriter, r *http.Request) {
 	t := new(model.Task)
 
@@ -143,7 +135,7 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 
 	tl := &model.TaskLog{
 		TaskId: ti,
-		Status: Init,
+		Status: model.Init,
 	}
 
 	err = model.InsertTaskLog(tl)
@@ -310,7 +302,7 @@ func (t *task) start() {
 	c.Stderr = &err_out
 
 	c.Start()
-	model.UpdateTaskLog(t.id, Running)
+	model.UpdateTaskLog(t.id, model.Running)
 	t.out_log.Info("start building")
 
 	c.Wait()
@@ -366,10 +358,10 @@ func newLogFile(filename string) (*os.File, error) {
 func (t *task) checkError() {
 	if t.err != nil {
 		log.Infof("build taskid:%d failed", t.id)
-		model.UpdateTaskLog(t.id, Failed)
+		model.UpdateTaskLog(t.id, model.Failed)
 	} else {
 		log.Infof("build taskid:%d success", t.id)
-		model.UpdateTaskLog(t.id, Success)
+		model.UpdateTaskLog(t.id, model.Success)
 	}
 }
 
