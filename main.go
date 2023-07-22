@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/hash-rabbit/auto-build/config"
+	"github.com/hash-rabbit/auto-build/env"
 	l "github.com/hash-rabbit/auto-build/log"
 	"github.com/hash-rabbit/auto-build/logic"
 	"github.com/hash-rabbit/auto-build/model"
@@ -44,6 +45,8 @@ func main() {
 		log.Panicf("init node error:%s", err)
 	}
 
+	env.Init()
+
 	srv := &http.Server{
 		Handler:      route(config.C),
 		Addr:         fmt.Sprintf(":%d", config.C.Port),
@@ -60,8 +63,6 @@ func route(c *config.Config) *mux.Router {
 
 	r.HandleFunc("/api/home/info", logic.HomeInfo).Methods(http.MethodGet)
 
-	r.HandleFunc("/api/goenv/add", logic.AddEnv).Methods(http.MethodPost, http.MethodOptions)
-	r.HandleFunc("/api/goenv/delete", logic.DelEnv).Methods(http.MethodDelete, http.MethodOptions)
 	r.HandleFunc("/api/goenv/list", logic.ListEnv).Methods(http.MethodGet)
 
 	r.HandleFunc("/api/project/add", logic.AddPorject).Methods(http.MethodPost, http.MethodOptions)

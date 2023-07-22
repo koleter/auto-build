@@ -10,9 +10,10 @@ import (
 
 func TestClone(t *testing.T) {
 	expected := [][]string{
-		{"./wos-client", "https://igit.58corp.com/mengfanyu03/wos-client.git", "mengfanyu03", "Meng9826873201+"},
-		{"./wos-web", "https://igit.58corp.com/storage/wos-web.git", "TEFymne5jfWmTw5xmG7y"},
-		{"./scf-go", "https://igit.58corp.com/arch-scf/scf-go.git"},
+		// {"./wos-client", "https://igit.58corp.com/mengfanyu03/wos-client.git", "mengfanyu03", "Meng9826873201+"},
+		// {"./wos-web", "https://igit.58corp.com/storage/wos-web.git", "TEFymne5jfWmTw5xmG7y"},
+		// {"./scf-go", "https://igit.58corp.com/arch-scf/scf-go.git"},
+		{"../test/dl", "https://github.com/golang/dl.git"},
 	}
 
 	for _, v := range expected {

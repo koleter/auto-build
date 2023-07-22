@@ -16,7 +16,7 @@ const (
 type Task struct {
 	Id        int64     `xorm:"pk" json:"id"`
 	ProjectId int64     `xorm:"index" json:"project_id"`
-	GoVersion int64     `xorm:"index" json:"go_version_id"` // envid
+	GoVersion string    `xorm:"index" json:"go_version_id"` // envid
 	Branch    string    `xorm:"varchar(10)" json:"branch"`
 	AutoBuild bool      `xorm:"Bool" json:"auto_build"`
 	MainFile  string    `xorm:"varchar(20)" json:"main_file"` // 主文件

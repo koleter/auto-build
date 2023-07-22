@@ -93,11 +93,11 @@ func autobuild(taskid int64) {
 		return
 	}
 
-	g, err := model.GetGoVersion(tk.GoVersion)
-	if err != nil {
-		log.Errorf("get version error:%s", err)
-		return
-	}
+	// g, err := model.GetGoVersion(tk.GoVersion)
+	// if err != nil {
+	// 	log.Errorf("get version error:%s", err)
+	// 	return
+	// }
 
 	tl := &model.TaskLog{
 		TaskId: taskid,
@@ -111,8 +111,8 @@ func autobuild(taskid int64) {
 	}
 
 	t := &task{
-		id:    tl.Id,
-		g:     g,
+		id: tl.Id,
+		// g:     g,
 		p:     p,
 		t:     tk,
 		tl:    tl,

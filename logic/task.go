@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/hash-rabbit/auto-build/config"
+	goenv "github.com/hash-rabbit/auto-build/env"
 	"github.com/hash-rabbit/auto-build/model"
 	"github.com/hash-rabbit/auto-build/util"
 	"github.com/subchen/go-log"
@@ -38,11 +39,11 @@ func AddTask(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := model.GetGoVersion(t.GoVersion); err != nil {
-		log.Errorf("select sql error:%s", err)
-		writeError(wr, "sql error", err.Error())
-		return
-	}
+	// if _, err := model.GetGoVersion(t.GoVersion); err != nil {
+	// 	log.Errorf("select sql error:%s", err)
+	// 	writeError(wr, "sql error", err.Error())
+	// 	return
+	// }
 
 	if len(t.Branch) == 0 {
 		log.Errorf("check param error")
@@ -126,12 +127,12 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	g, err := model.GetGoVersion(tk.GoVersion)
-	if err != nil {
-		log.Errorf("get version error:%s", err)
-		writeError(wr, "sql error", err.Error())
-		return
-	}
+	// g, err := model.GetGoVersion(tk.GoVersion)
+	// if err != nil {
+	// 	log.Errorf("get version error:%s", err)
+	// 	writeError(wr, "sql error", err.Error())
+	// 	return
+	// }
 
 	tl := &model.TaskLog{
 		TaskId: ti,
@@ -146,12 +147,13 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 	}
 
 	t := &task{
-		id:    tl.Id,
-		g:     g,
-		p:     p,
-		t:     tk,
-		tl:    tl,
-		files: make([]*os.File, 0),
+		id: tl.Id,
+		// g:     g,
+		goversion: tk.GoVersion,
+		p:         p,
+		t:         tk,
+		tl:        tl,
+		files:     make([]*os.File, 0),
 	}
 
 	go t.start()
@@ -178,11 +180,11 @@ func getTaskId(r *http.Request) (int64, error) {
 }
 
 type task struct {
-	id int64
-	g  *model.GoVersion
-	p  *model.Project
-	t  *model.Task
-	tl *model.TaskLog
+	id        int64
+	goversion string
+	p         *model.Project
+	t         *model.Task
+	tl        *model.TaskLog
 
 	files   []*os.File
 	out_log *log.Logger
@@ -236,7 +238,7 @@ func (t *task) start() {
 	model.UpdateTaskLogDescription(t.id, ls[0].Commit)
 	t.out_log.Info("git get commmit log success")
 
-	gobin := path.Join(t.g.LocalPath, "bin/go")
+	gobin := path.Join(goenv.GetGoPath(t.goversion), "bin/go")
 	t.out_log.Infof("go bin:%s", gobin)
 
 	srcfile := path.Join(t.p.LocalPath, t.t.MainFile)
@@ -253,7 +255,7 @@ func (t *task) start() {
 		env = append(env, "GO111MODULE=off")
 	}
 	env = append(env, "PATH=/opt/gcc-4.8.1/bin:"+ospath)
-	env = append(env, "GOBIN="+t.g.LocalPath)
+	env = append(env, "GOBIN="+goenv.GetGoPath(t.goversion))
 	env = append(env, "GOPATH="+t.p.WorkSpace)
 	env = append(env, "GOPROXY=https://goproxy.cn,direct")
 	env = append(env, "GOCACHE="+path.Join(t.p.WorkSpace, ".cache/"))
