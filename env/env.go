@@ -12,6 +12,7 @@ import (
 )
 
 var c *cron.Cron
+var Updating bool
 
 func Init() {
 	if _, err := os.Stat(getDlpath()); os.IsNotExist(err) {
@@ -21,14 +22,27 @@ func Init() {
 		}
 	}
 
-	refreshVersions()
+	updatingVersions()
 
 	c = cron.New()
-	c.AddFunc("@daily", refreshVersions)
+	c.AddFunc("@daily", updatingVersions)
 	c.Start()
 }
 
-func refreshVersions() {
+func updatingVersions() {
+	if Updating {
+		return
+	} else {
+		Updating = true
+		defer func() { Updating = false }()
+	}
+
+	err := util.Pull(getDlpath(), "origin", "master")
+	if err != nil {
+		log.Errorf("pull path:%s error:%s", getDlpath(), err)
+		return
+	}
+
 	dirs, err := os.ReadDir(getDlpath())
 	if err != nil {
 		log.Errorf("read dir:%s error:%s", getDlpath(), err)
@@ -63,15 +77,19 @@ func GetGoPath(version string) string {
 }
 
 func ListEnv() ([]string, error) {
-	dirs, err := os.ReadDir(getDlpath())
+	dirs, err := os.ReadDir(config.C.GoEnvPath)
 	if err != nil {
-		log.Errorf("read dir:%s error:%s", getDlpath(), err)
+		log.Errorf("read dir:%s error:%s", config.C.GoEnvPath, err)
 		return nil, err
 	}
 
 	envs := make([]string, 0)
 	for _, dir := range dirs {
-		if strings.HasPrefix(dir.Name(), "go1.") {
+		if !strings.HasPrefix(dir.Name(), "go1.") {
+			continue
+		}
+
+		if _, err := os.Stat(filepath.Join(config.C.GoEnvPath, "bin", "go")); err == nil {
 			envs = append(envs, dir.Name())
 		}
 	}
