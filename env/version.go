@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/user"
@@ -25,6 +24,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/subchen/go-log"
 )
 
 func init() {
@@ -293,7 +294,7 @@ func copyFromURL(dstFile, srcURL string) (err error) {
 	if res.StatusCode != http.StatusOK {
 		return errors.New(res.Status)
 	}
-	pw := &progressWriter{w: f, total: res.ContentLength, output: os.Stderr}
+	pw := &progressWriter{w: f, total: res.ContentLength, output: log.Default.Out}
 	n, err := io.Copy(pw, res.Body)
 	if err != nil {
 		return err
