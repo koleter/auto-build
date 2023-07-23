@@ -202,7 +202,7 @@ func Count30DayTaskLog() ([]*DataCount, error) {
 	ds := make([]*DataCount, 0)
 	start := time.Now().AddDate(0, 0, -30)
 	err := engine.Table("task_log").Where("create_at >= ?", time.Date(start.Year(), start.Month(),
-		start.Day(), 0, 0, 0, 0, time.Local)).Select("strftime('%Y-%m-%d', create_at) date, count(*) count").
+		start.Day(), 0, 0, 0, 0, time.Local)).Where("deleted_at IS NULL").Select("strftime('%Y-%m-%d', create_at) date, count(*) count").
 		GroupBy("strftime('%Y-%m-%d', create_at)").Find(&ds)
 	return ds, err
 }
