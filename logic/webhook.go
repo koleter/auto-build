@@ -28,9 +28,15 @@ func DoWebHook(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e := new(Event)
-	err := ParseParam(r, e)
+	p, err := model.GetProjectByName(projectName)
 	if err != nil {
+		log.Errorf("check param error:%s", err)
+		writeError(wr, "params error", err.Error())
+		return
+	}
+
+	e := new(Event)
+	if err := ParseParam(r, e); err != nil {
 		log.Errorf("check param error:%s", err)
 		writeError(wr, "params error", err.Error())
 		return
@@ -50,13 +56,6 @@ func DoWebHook(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := model.GetProjectByName(projectName)
-	if err != nil {
-		log.Errorf("check param error:%s", err)
-		writeError(wr, "params error", err.Error())
-		return
-	}
-
 	ts, err := model.ListTask(p.Id, 0)
 	if err != nil {
 		log.Errorf("get project error:%s", err)
@@ -64,11 +63,7 @@ func DoWebHook(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, t := range ts {
-		if t.Branch == branch && t.AutoBuild {
-			go autobuild(t.Id)
-		}
-	}
+	go startBuild(ts, branch)
 
 	writeSuccess(wr, "success")
 }
@@ -78,6 +73,14 @@ func getBranch(ref string) string {
 		return strings.TrimPrefix(ref, "refs/heads/")
 	}
 	return ""
+}
+
+func startBuild(ts []*model.TaskInfo, branch string) {
+	for _, t := range ts {
+		if t.Branch == branch && t.AutoBuild {
+			autobuild(t.Id)
+		}
+	}
 }
 
 func autobuild(taskid int64) {
@@ -93,12 +96,6 @@ func autobuild(taskid int64) {
 		return
 	}
 
-	// g, err := model.GetGoVersion(tk.GoVersion)
-	// if err != nil {
-	// 	log.Errorf("get version error:%s", err)
-	// 	return
-	// }
-
 	tl := &model.TaskLog{
 		TaskId: taskid,
 		Status: model.Init,
@@ -111,13 +108,13 @@ func autobuild(taskid int64) {
 	}
 
 	t := &task{
-		id: tl.Id,
-		// g:     g,
-		p:     p,
-		t:     tk,
-		tl:    tl,
-		files: make([]*os.File, 0),
+		id:        tl.Id,
+		goversion: tk.GoVersion,
+		p:         p,
+		t:         tk,
+		tl:        tl,
+		files:     make([]*os.File, 0),
 	}
 
-	go t.start()
+	t.start()
 }
