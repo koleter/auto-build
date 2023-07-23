@@ -39,12 +39,6 @@ func AddTask(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if _, err := model.GetGoVersion(t.GoVersion); err != nil {
-	// 	log.Errorf("select sql error:%s", err)
-	// 	writeError(wr, "sql error", err.Error())
-	// 	return
-	// }
-
 	if len(t.Branch) == 0 {
 		log.Errorf("check param error")
 		writeError(wr, "params error", "param error")
