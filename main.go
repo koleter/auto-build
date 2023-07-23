@@ -55,10 +55,10 @@ func route(c *config.Config) *mux.Router {
 	r.HandleFunc("/api/goenv/list", logic.ListEnv).Methods(http.MethodGet)
 
 	r.HandleFunc("/api/project/add", logic.AddPorject).Methods(http.MethodPost, http.MethodOptions)
-	r.HandleFunc("/api/project/lsdir", logic.ListDir).Methods(http.MethodGet)
+	// r.HandleFunc("/api/project/lsdir", logic.ListDir).Methods(http.MethodGet)
 	r.HandleFunc("/api/project/branch/list", logic.ListBranch).Methods(http.MethodGet)
 	r.HandleFunc("/api/project/delete", logic.DelPorject).Methods(http.MethodDelete, http.MethodOptions)
-	r.HandleFunc("/api/project/pull", logic.PullPorject).Methods(http.MethodPost, http.MethodOptions)
+	// r.HandleFunc("/api/project/pull", logic.PullPorject).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/api/project/list", logic.ListPorject).Methods(http.MethodGet)
 
 	r.HandleFunc("/api/task/add", logic.AddTask).Methods(http.MethodPost, http.MethodOptions)

@@ -8,13 +8,14 @@ import (
 type Config struct {
 	Port          int    `toml:"port"`
 	LogPath       string `toml:"log_path"`
-	LogLevel      string `toml:"log_level"`
-	RecordPath    string `toml:"record_path"`     //存放编译日志
-	GoEnvPath     string `toml:"go_env_path"`     //存放 golang 环境的
-	DefaultGoPath string `toml:"default_go_path"` //默认 go_path,主要用于 gomod
-	DestPath      string `toml:"dest_path"`       //编译完成的文件存放位置
-	SqlFile       string `toml:"sql_file"`
-	WebPath       string `toml:"web_path"` //前端路径
+	LogLevel      string `toml:"log_level"`       // default: DEBUG
+	RecordPath    string `toml:"record_path"`     // 存放编译日志
+	BarePath      string `toml:"bare_path"`       // bare 路径
+	GoEnvPath     string `toml:"go_env_path"`     // 存放 golang 环境的
+	DefaultGoPath string `toml:"default_go_path"` // 默认 go_path,主要用于 gomod
+	DestPath      string `toml:"dest_path"`       // 编译完成的文件存放位置
+	SqlFile       string `toml:"sql_file"`        // sqlite3文件路径
+	WebPath       string `toml:"web_path"`        // 前端路径
 }
 
 var C *Config

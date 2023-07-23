@@ -24,31 +24,48 @@ import (
 func AddTask(wr http.ResponseWriter, r *http.Request) {
 	t := new(model.Task)
 
-	err := ParseParam(r, t)
-	if err != nil {
+	if err := ParseParam(r, t); err != nil {
 		log.Errorf("check param error:%s", err)
 		writeError(wr, "params error", err.Error())
 		return
 	}
 	log.Debugf("recv:%+v", t)
 
-	_, err = model.GetProject(t.ProjectId)
-	if err != nil {
+	if err := checkTask(t); err != nil {
+		log.Errorf("check task error:%s", err)
+		writeError(wr, "check error", err.Error())
+		return
+	}
+
+	if _, err := model.GetProject(t.ProjectId); err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
 		return
 	}
 
-	if len(t.Branch) == 0 {
-		log.Errorf("check param error")
-		writeError(wr, "params error", "param error")
+	if err := model.InsertTask(t); err != nil {
+		log.Errorf("insert sql error:%s", err)
+		writeError(wr, "sql error", err.Error())
 		return
 	}
 
-	if len(t.MainFile) == 0 || len(t.DestFile) == 0 {
+	writeSuccess(wr, "create task ok")
+}
+
+func checkTask(t *model.Task) error {
+	if len(t.Branch) == 0 {
 		log.Errorf("check param error")
-		writeError(wr, "params error", "param error")
-		return
+		return fmt.Errorf("branch not set")
+	}
+
+	if len(t.MainFile) == 0 {
+		log.Errorf("check param error")
+		return fmt.Errorf("main file not set")
+	}
+
+	if len(t.DestFile) == 0 {
+		log.Errorf("check param error")
+		return fmt.Errorf("dest file not set")
 	}
 
 	switch t.DestOs {
@@ -59,8 +76,7 @@ func AddTask(wr http.ResponseWriter, r *http.Request) {
 	case "darwin":
 	default:
 		log.Errorf("check GOOS error")
-		writeError(wr, "params error", "GOOS error")
-		return
+		return fmt.Errorf("GOOS not allowed")
 	}
 
 	switch t.DestArch {
@@ -71,17 +87,10 @@ func AddTask(wr http.ResponseWriter, r *http.Request) {
 	case "arm64":
 	default:
 		log.Errorf("check GOARCH error")
-		writeError(wr, "params error", "GOARCH error")
-		return
+		return fmt.Errorf("GOARCH not allowed")
 	}
 
-	err = model.InsertTask(t)
-	if err != nil {
-		log.Errorf("insert sql error:%s", err)
-		writeError(wr, "sql error", err.Error())
-		return
-	}
-	writeSuccess(wr, "create task ok")
+	return nil
 }
 
 func ListTask(wr http.ResponseWriter, r *http.Request) {
@@ -121,13 +130,6 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// g, err := model.GetGoVersion(tk.GoVersion)
-	// if err != nil {
-	// 	log.Errorf("get version error:%s", err)
-	// 	writeError(wr, "sql error", err.Error())
-	// 	return
-	// }
-
 	tl := &model.TaskLog{
 		TaskId: ti,
 		Status: model.Init,
@@ -141,8 +143,7 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 	}
 
 	t := &task{
-		id: tl.Id,
-		// g:     g,
+		id:        tl.Id,
 		goversion: tk.GoVersion,
 		p:         p,
 		t:         tk,
@@ -187,9 +188,7 @@ type task struct {
 }
 
 func (t *task) start() {
-	defer t.clean()
 	defer t.checkError()
-	defer t.checkoutMaster()
 
 	log.Infof("star build task:%d", t.id)
 
@@ -198,24 +197,18 @@ func (t *task) start() {
 		log.Error("create out file error")
 		return
 	}
+	defer t.clean()
 	t.out_log.Info("create out put file success")
 
-	t.out_log.Infof("git checkout %s", t.t.Branch)
-	t.err = util.Checkout(t.p.LocalPath, defaultRemoteName, t.t.Branch)
+	t.out_log.Infof("git clone %s", t.t.Branch)
+	t.err = util.CloneSingleBranch(t.p.LocalPath, t.p.Url, t.t.Branch, t.p.Token)
 	if t.err != nil {
 		t.out_log.Error(t.err)
 		log.Error(t.err)
 		return
 	}
-	t.out_log.Info("git checkout success")
-
-	t.out_log.Infof("git pull %s %s", defaultRemoteName, t.t.Branch)
-	t.err = util.Pull(t.p.LocalPath, defaultRemoteName, t.t.Branch) //TODO:这块很容易卡住,需要排查
-	if t.err != nil {
-		t.out_log.Error(t.err)
-		return
-	}
-	t.out_log.Info("git pull success")
+	defer func() { os.RemoveAll(t.p.LocalPath) }()
+	t.out_log.Info("git clone success")
 
 	t.out_log.Infof("git log %s", t.t.Branch)
 	ls, err := util.GitLog(t.p.LocalPath, 1)
@@ -364,13 +357,6 @@ func (t *task) checkError() {
 func (t *task) clean() {
 	for _, v := range t.files {
 		v.Close()
-	}
-}
-
-func (t *task) checkoutMaster() {
-	err := util.Checkout(t.p.LocalPath, defaultRemoteName, t.p.MainBranch)
-	if err != nil {
-		log.Error(err)
 	}
 }
 

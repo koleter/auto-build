@@ -38,6 +38,48 @@ func Clone(path, url string, token ...string) error {
 	return err
 }
 
+func CloneSingleBranch(path, url, branch, token string) error {
+	op := &git.CloneOptions{
+		URL:           url,
+		Auth:          getAuth(token),
+		ReferenceName: plumbing.NewBranchReferenceName(branch),
+		SingleBranch:  true,
+		Depth:         1,
+		Tags:          git.NoTags,
+	}
+
+	_, err := git.PlainClone(path, false, op)
+	return err
+}
+
+func CloenWithBare(path, url, token string) error {
+	op := &git.CloneOptions{
+		URL:          url,
+		Auth:         getAuth(token),
+		SingleBranch: false,
+	}
+	_, err := git.PlainClone(path, true, op)
+	return err
+}
+
+func getAuth(tokenStr string) *http.BasicAuth {
+	token := strings.Split(tokenStr, ":")
+	switch len(token) {
+	case 1:
+		return &http.BasicAuth{
+			Username: "oauth2",
+			Password: token[0],
+		}
+	case 2:
+		return &http.BasicAuth{
+			Username: token[0],
+			Password: token[1],
+		}
+	default:
+		return nil
+	}
+}
+
 // url如果是私有工程需要带秘钥
 // url 是已经配好用户名密码的 url
 // insertOnly: true:如果远程名称已存在,则返回 false:如果远程名称存在则更新 url
@@ -110,23 +152,19 @@ func Pull(path, remote, branch string) error {
 	return err
 }
 
-func Fetch(path, remote string) error {
+func Fetch(path, remote, token string) error {
 	r, err := git.PlainOpen(path)
 	if err != nil {
 		return err
 	}
 
-	re, err := r.Remote(remote)
-	if err != nil {
-		return err
+	op := &git.FetchOptions{
+		RemoteName: remote,
+		Auth:       getAuth(token),
+		Force:      true,
 	}
 
-	err = re.Fetch(&git.FetchOptions{})
-	if err == git.NoErrAlreadyUpToDate {
-		return nil
-	}
-
-	return err
+	return r.Fetch(op)
 }
 
 func BranchList(path, remote string) ([]string, error) {
@@ -135,22 +173,32 @@ func BranchList(path, remote string) ([]string, error) {
 		return nil, err
 	}
 
-	re, err := r.Remote(remote)
-	if err != nil {
-		return nil, err
-	}
-
-	refs, err := re.List(&git.ListOptions{})
+	refs, err := r.Branches()
 	if err != nil {
 		return nil, err
 	}
 
 	resu := make([]string, 0)
-	for _, re := range refs {
-		if re.Name().IsBranch() {
-			resu = append(resu, re.Name().Short())
-		}
-	}
+	refs.ForEach(func(r *plumbing.Reference) error {
+		resu = append(resu, r.Name().Short())
+		return nil
+	})
+
+	// re, err := r.Remote(remote)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// refs, err := re.List(&git.ListOptions{})
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// for _, re := range refs {
+	// 	if re.Name().IsBranch() {
+	// 		resu = append(resu, re.Name().Short())
+	// 	}
+	// }
 
 	return resu, nil
 }
