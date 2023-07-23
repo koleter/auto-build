@@ -99,7 +99,7 @@ func ListTask(wr http.ResponseWriter, r *http.Request) {
 		log.Debugf("check param error:%s", err)
 		projectid = 0
 	}
-	ts, err := model.ListTask(int64(projectid), 0)
+	ts, err := model.ListTask(int64(projectid))
 	if err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
@@ -373,12 +373,6 @@ func ListTaskLog(wr http.ResponseWriter, r *http.Request) {
 		projectid = 0
 	}
 
-	versionid, err := strconv.ParseInt(r.FormValue("version_id"), 10, 64)
-	if err != nil {
-		log.Warnf("check param error:%s", err)
-		versionid = 0
-	}
-
 	taskid, err := strconv.ParseInt(r.FormValue("task_id"), 10, 64)
 	if err != nil {
 		log.Warnf("check param error:%s", err)
@@ -397,7 +391,7 @@ func ListTaskLog(wr http.ResponseWriter, r *http.Request) {
 		offset = 0
 	}
 
-	ts, err := model.ListTaskLog(versionid, projectid, taskid, limit, offset)
+	ts, err := model.ListTaskLog(projectid, taskid, limit, offset)
 	if err != nil {
 		log.Errorf("select sql error:%s", err)
 		writeError(wr, "sql error", err.Error())

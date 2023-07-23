@@ -25,59 +25,6 @@ func TestClone(t *testing.T) {
 	}
 }
 
-func TestAddRemote(t *testing.T) {
-	expected := [][]string{
-		{"./wos-client", "https://igit.58corp.com/mengfanyu03/wos-client.git", "mengfanyu03", "Meng9826873201+"},
-		{"./wos-web", "https://igit.58corp.com/storage/wos-web.git", "TEFymne5jfWmTw5xmG7y"},
-		{"./scf-go", "https://igit.58corp.com/arch-scf/scf-go.git"},
-	}
-
-	for _, v := range expected {
-		if len(v) >= 3 {
-			t.Log(AddRemote(v[0], "test", GetUrl(v[1], v[2:]...), false))
-		} else {
-			t.Log(AddRemote(v[0], "test", GetUrl(v[1]), false))
-		}
-	}
-
-	for _, v := range expected {
-		r, _ := git.PlainOpen(v[0])
-		re, _ := r.Remote("test")
-		t.Logf("path:%s remote 'test' urls: %+v", v[0], re.Config().URLs)
-	}
-}
-
-func TestRmRemote(t *testing.T) {
-	expected := [][]string{
-		{"./wos-client", "https://igit.58corp.com/mengfanyu03/wos-client.git", "mengfanyu03", "Meng9826873201+"},
-		{"./wos-web", "https://igit.58corp.com/storage/wos-web.git", "TEFymne5jfWmTw5xmG7y"},
-		{"./scf-go", "https://igit.58corp.com/arch-scf/scf-go.git"},
-	}
-
-	for _, v := range expected {
-		t.Log(RmRemote(v[0], "test"))
-	}
-
-	for _, v := range expected {
-		r, _ := git.PlainOpen(v[0])
-		_, err := r.Remote("test")
-		t.Logf("path:%s remote 'test' err: %s", v[0], err)
-	}
-
-}
-
-func TestCheckout(t *testing.T) {
-	expected := [][]string{
-		{"./wos-client", "https://igit.58corp.com/mengfanyu03/wos-client.git", "dev-mfy"},
-		{"./wos-web", "https://igit.58corp.com/storage/wos-web.git", "dev_ljh"},
-		{"./scf-go", "https://igit.58corp.com/arch-scf/scf-go.git", "dev"},
-	}
-
-	for _, v := range expected {
-		t.Log(Checkout(v[0], "test", v[2]))
-	}
-}
-
 func TestGitPull(t *testing.T) {
 	expected := [][]string{
 		{"./wos-client", "https://igit.58corp.com/mengfanyu03/wos-client.git", "dev-mfy"},
@@ -209,4 +156,12 @@ func TestGit(t *testing.T) {
 
 	// t.Log(r.DeleteBranch(branch))
 
+}
+
+func TestBranchList(t *testing.T) {
+	brans, err := BranchList("/Users/mengfanyu/opt/auto-build/bare/auto-build", "origin")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	t.Logf("%+v", brans)
 }

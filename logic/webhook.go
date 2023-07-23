@@ -56,7 +56,7 @@ func DoWebHook(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts, err := model.ListTask(p.Id, 0)
+	ts, err := model.ListTask(p.Id)
 	if err != nil {
 		log.Errorf("get project error:%s", err)
 		writeError(wr, "logic error", err.Error())

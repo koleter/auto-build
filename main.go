@@ -99,6 +99,12 @@ func checkDir(c *config.Config) error {
 		return err
 	}
 
+	c.BarePath, _ = filepath.Abs(c.BarePath)
+	err = os.MkdirAll(c.BarePath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	c.GoEnvPath, _ = filepath.Abs(c.GoEnvPath)
 	err = os.MkdirAll(c.GoEnvPath, os.ModePerm)
 	if err != nil {

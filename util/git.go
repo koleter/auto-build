@@ -1,13 +1,10 @@
 package util
 
 import (
-	"fmt"
 	"io"
-	"net/url"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
@@ -63,6 +60,10 @@ func CloenWithBare(path, url, token string) error {
 }
 
 func getAuth(tokenStr string) *http.BasicAuth {
+	if len(tokenStr) == 0 {
+		return nil
+	}
+
 	token := strings.Split(tokenStr, ":")
 	switch len(token) {
 	case 1:
@@ -78,50 +79,6 @@ func getAuth(tokenStr string) *http.BasicAuth {
 	default:
 		return nil
 	}
-}
-
-// url如果是私有工程需要带秘钥
-// url 是已经配好用户名密码的 url
-// insertOnly: true:如果远程名称已存在,则返回 false:如果远程名称存在则更新 url
-func AddRemote(path, name, url string, insertOnly bool) error {
-	r, err := git.PlainOpen(path)
-	if err != nil {
-		return err
-	}
-
-	_, err = r.Remote(name)
-	if err != nil && err != git.ErrRemoteNotFound {
-		return err
-	}
-
-	// 如果存在先删除
-	if err == nil {
-		if insertOnly {
-			return fmt.Errorf("remote exist but insert only")
-		}
-		r.DeleteRemote(name)
-	}
-
-	op := &config.RemoteConfig{
-		Name: name,
-		URLs: []string{url},
-	}
-
-	re, err := r.CreateRemote(op)
-	if err != nil {
-		return err
-	}
-
-	return re.Fetch(&git.FetchOptions{})
-}
-
-func RmRemote(path, name string) error {
-	r, err := git.PlainOpen(path)
-	if err != nil {
-		return err
-	}
-
-	return r.DeleteRemote(name)
 }
 
 // 请确保目前在 branch 分支上,否则会自动进行合并 branch 到当前分支
@@ -164,7 +121,12 @@ func Fetch(path, remote, token string) error {
 		Force:      true,
 	}
 
-	return r.Fetch(op)
+	err = r.Fetch(op)
+	if err == git.NoErrAlreadyUpToDate {
+		return nil
+	}
+
+	return err
 }
 
 func BranchList(path, remote string) ([]string, error) {
@@ -172,62 +134,25 @@ func BranchList(path, remote string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	resu := make([]string, 0)
 
-	refs, err := r.Branches()
+	re, err := r.Remote(remote)
 	if err != nil {
 		return nil, err
 	}
 
-	resu := make([]string, 0)
-	refs.ForEach(func(r *plumbing.Reference) error {
-		resu = append(resu, r.Name().Short())
-		return nil
-	})
+	refs, err := re.List(&git.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
 
-	// re, err := r.Remote(remote)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// refs, err := re.List(&git.ListOptions{})
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// for _, re := range refs {
-	// 	if re.Name().IsBranch() {
-	// 		resu = append(resu, re.Name().Short())
-	// 	}
-	// }
+	for _, re := range refs {
+		if re.Name().IsBranch() {
+			resu = append(resu, re.Name().Short())
+		}
+	}
 
 	return resu, nil
-}
-
-// 目前仅支持 branch 模式
-func Checkout(path, remote, branch string) error {
-	r, err := git.PlainOpen(path)
-	if err != nil {
-		return err
-	}
-
-	exist := checkBranchExist(r, branch)
-	if !exist {
-		r.CreateBranch(&config.Branch{
-			Name:   branch,
-			Remote: remote,
-			Merge:  plumbing.NewBranchReferenceName(branch),
-		})
-	}
-
-	w, err := r.Worktree()
-	if err != nil {
-		return err
-	}
-
-	return w.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.NewBranchReferenceName(branch),
-		Create: !exist,
-	})
 }
 
 type LogItem struct {
@@ -264,53 +189,4 @@ func GitLog(path string, n int) ([]*LogItem, error) {
 		})
 	}
 	return resu, nil
-}
-
-// giturl 为 git 地址(http[s]),不用带秘钥
-// 公共仓库,token 不填
-// 单个秘钥:token 为秘钥
-// 用户名密码:token 为username,passwoed 的字符串数组
-func GetUrl(giturl string, token ...string) string {
-	if len(token) == 0 { //公有库
-		return giturl
-	}
-
-	user := "oauth2"
-	password := ""
-	switch len(token) {
-	case 1:
-		password = token[0]
-	case 2:
-		user = token[0]
-		password = token[1]
-	default:
-		return ""
-	}
-
-	user = url.QueryEscape(user)
-	password = url.QueryEscape(password)
-
-	if strings.HasPrefix(giturl, "https://") {
-		return fmt.Sprintf("https://%s:%s@%s", user, password, strings.TrimPrefix(giturl, "https://"))
-	} else if strings.HasPrefix(giturl, "http://") {
-		return fmt.Sprintf("http://%s:%s@%s", user, password, strings.TrimPrefix(giturl, "http://"))
-	}
-
-	return "" //出错返回空,后面会检测出来
-}
-
-func checkBranchExist(r *git.Repository, branch string) bool {
-	bs, _ := r.Branches()
-	defer bs.Close()
-
-	for {
-		item, err := bs.Next()
-		if err != nil {
-			break
-		}
-		if branch == item.Name().Short() {
-			return true
-		}
-	}
-	return false
 }

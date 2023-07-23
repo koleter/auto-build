@@ -111,16 +111,12 @@ type TaskInfo struct {
 	Version string `json:"version"`
 }
 
-func ListTask(projectid int64, goverid int64) ([]*TaskInfo, error) {
+func ListTask(projectid int64) ([]*TaskInfo, error) {
 	ts := make([]*TaskInfo, 0)
 	s := engine.NewSession()
-	s.Table("task").Join("INNER", "project", "task.project_id = project.id").
-		Join("INNER", "go_version", "task.go_version = go_version.id")
+	s.Table("task").Join("INNER", "project", "task.project_id = project.id")
 	if projectid > 0 {
 		s.Where("project_id = ?", projectid)
-	}
-	if goverid > 0 {
-		s.Where("go_version = ?", goverid)
 	}
 	err := s.Find(&ts)
 	return ts, err
@@ -133,16 +129,11 @@ type TaskLogInfo struct {
 	Version string `json:"version"`
 }
 
-func ListTaskLog(versionId, projectId, taskid int64, limit int, offset ...int) ([]*TaskLogInfo, error) {
+func ListTaskLog(projectId, taskid int64, limit int, offset ...int) ([]*TaskLogInfo, error) {
 	tls := make([]*TaskLogInfo, 0)
 	s := engine.NewSession()
 	s.Table("task_log").Join("INNER", "task", "task.id = task_log.task_id").
-		Join("INNER", "project", "task.project_id = project.id").
-		Join("INNER", "go_version", "task.go_version = go_version.id")
-
-	if versionId > 0 {
-		s.Where("go_version.id = ?", versionId)
-	}
+		Join("INNER", "project", "task.project_id = project.id")
 
 	if projectId > 0 {
 		s.Where("project.id = ?", projectId)

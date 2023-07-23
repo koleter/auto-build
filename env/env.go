@@ -82,6 +82,7 @@ func ListEnv() ([]string, error) {
 		log.Errorf("read dir:%s error:%s", config.C.GoEnvPath, err)
 		return nil, err
 	}
+	log.Debugf("dirs:%+v", dirs)
 
 	envs := make([]string, 0)
 	for _, dir := range dirs {
@@ -89,7 +90,8 @@ func ListEnv() ([]string, error) {
 			continue
 		}
 
-		if _, err := os.Stat(filepath.Join(config.C.GoEnvPath, "bin", "go")); err == nil {
+		// log.Debugf("check path:%s", filepath.Join(config.C.GoEnvPath, dir.Name(), "bin", "go"))
+		if _, err := os.Stat(filepath.Join(config.C.GoEnvPath, dir.Name(), "bin", "go")); err == nil {
 			envs = append(envs, dir.Name())
 		}
 	}

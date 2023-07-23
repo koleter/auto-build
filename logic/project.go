@@ -17,10 +17,9 @@ import (
 	"github.com/subchen/go-log"
 )
 
-var defaultRemoteName = "build"
-
 func AddPorject(wr http.ResponseWriter, r *http.Request) {
 	p := &model.Project{}
+	var err error
 	if err := ParseParam(r, p); err != nil {
 		log.Errorf("check param error:%s", err)
 		writeError(wr, "param error", err.Error())
@@ -45,6 +44,13 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Debugf("set workspace path:%s", p.WorkSpace)
+
+	p.LocalPath, err = filepath.Abs(p.LocalPath)
+	if err != nil {
+		log.Errorf("filepath abs error:%s", err)
+		writeError(wr, "path error", err.Error())
+		return
+	}
 
 	if path_exist, err := PathExists(p.LocalPath); err != nil {
 		log.Errorf("path %s check error:%s", p.LocalPath, err)
@@ -169,7 +175,7 @@ func DelPorject(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts, err := model.ListTask(p.Id, 0)
+	ts, err := model.ListTask(p.Id)
 	if err != nil {
 		log.Errorf("selet sql error:%s", err)
 		writeError(wr, "sql error", err.Error())
@@ -256,7 +262,7 @@ func ListBranch(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	branchs, err := util.BranchList(p.LocalPath, defaultRemoteName)
+	branchs, err := util.BranchList(getBarePath(p.Name), "origin")
 	if err != nil {
 		log.Errorf("get branch list error:%s", err)
 		writeError(wr, "logic error", err.Error())
