@@ -23,6 +23,7 @@ func main() {
 	}
 
 	config.LoadConfig(os.Args[1])
+
 	err := checkDir(config.C)
 	if err != nil {
 		log.Panicf("create dir error:%s", err)
@@ -30,20 +31,8 @@ func main() {
 
 	l.SetLogFileName(filepath.Join(config.C.LogPath, "auto-build.log"), config.C.LogLevel)
 
-	err = model.InitSqlLite(config.C.SqlFile)
-	if err != nil {
-		log.Panicf("init sql error:%s", err)
-	}
-	err = model.AuthMergeTable()
-	if err != nil {
-		log.Panicf("merge error:%s", err)
-	}
+	model.InitModel()
 	defer model.Close()
-
-	err = model.InitNode()
-	if err != nil {
-		log.Panicf("init node error:%s", err)
-	}
 
 	env.Init()
 

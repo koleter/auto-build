@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/hash-rabbit/auto-build/config"
 	"github.com/hash-rabbit/snowflake"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/subchen/go-log"
@@ -9,6 +10,23 @@ import (
 
 var engine *xorm.Engine
 var node *snowflake.Node
+
+func InitModel() {
+	err := InitNode()
+	if err != nil {
+		log.Panicf("init node error:%s", err)
+	}
+
+	err = InitSqlLite(config.C.SqlFile)
+	if err != nil {
+		log.Panicf("init sql lite error:%s", err)
+	}
+
+	err = AuthMergeTable()
+	if err != nil {
+		log.Panicf("auto merge table error:%s", err)
+	}
+}
 
 func InitNode() error {
 	var err error
@@ -32,7 +50,7 @@ func InitSqlLite(filepath string) (err error) {
 }
 
 func AuthMergeTable() error {
-	return engine.Sync(new(GoVersion), new(Project), new(Task), new(TaskLog))
+	return engine.Sync(new(Project), new(Task), new(TaskLog))
 }
 
 func Close() {
