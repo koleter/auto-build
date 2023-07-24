@@ -157,11 +157,3 @@ func TestGit(t *testing.T) {
 	// t.Log(r.DeleteBranch(branch))
 
 }
-
-func TestBranchList(t *testing.T) {
-	brans, err := BranchList("/Users/mengfanyu/opt/auto-build/bare/auto-build", "origin")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	t.Logf("%+v", brans)
-}
