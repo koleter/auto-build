@@ -22,7 +22,7 @@ func Init() {
 		}
 	}
 
-	// go updatingVersions()
+	go updatingVersions()
 
 	c = cron.New()
 	c.AddFunc("@daily", updatingVersions)
