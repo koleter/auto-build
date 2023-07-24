@@ -262,7 +262,7 @@ func ListBranch(wr http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	branchs, err := util.BranchList(getBarePath(p.Name), "origin")
+	branchs, err := util.BranchList(getBarePath(p.Name), "origin", p.Token)
 	if err != nil {
 		log.Errorf("get branch list error:%s", err)
 		writeError(wr, "logic error", err.Error())

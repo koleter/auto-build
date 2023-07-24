@@ -129,7 +129,7 @@ func Fetch(path, remote, token string) error {
 	return err
 }
 
-func BranchList(path, remote string) ([]string, error) {
+func BranchList(path, remote, token string) ([]string, error) {
 	r, err := git.PlainOpen(path)
 	if err != nil {
 		return nil, err
@@ -141,7 +141,9 @@ func BranchList(path, remote string) ([]string, error) {
 		return nil, err
 	}
 
-	refs, err := re.List(&git.ListOptions{})
+	refs, err := re.List(&git.ListOptions{
+		Auth: getAuth(token),
+	})
 	if err != nil {
 		return nil, err
 	}
