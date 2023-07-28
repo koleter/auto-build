@@ -22,10 +22,10 @@ func InitModel() {
 		log.Panicf("init sql lite error:%s", err)
 	}
 
-	err = AuthMergeTable()
-	if err != nil {
-		log.Panicf("auto merge table error:%s", err)
-	}
+	// err = AuthMergeTable()
+	// if err != nil {
+	// 	log.Panicf("auto merge table error:%s", err)
+	// }
 }
 
 func InitNode() error {
