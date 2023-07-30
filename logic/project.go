@@ -129,36 +129,6 @@ func ListPorject(wr http.ResponseWriter, r *http.Request) {
 	writeJson(wr, ps)
 }
 
-// func PullPorject(wr http.ResponseWriter, r *http.Request) {
-// 	param, err := checkParam(r)
-// 	if err != nil {
-// 		log.Errorf("check param error:%s", err)
-// 		writeError(wr, "param error", err.Error())
-// 		return
-// 	}
-
-// 	var projectId int64
-// 	if param["project_id"] != nil {
-// 		projectId = int64(param["project_id"].(float64))
-// 	}
-
-// 	p, err := model.GetProject(projectId)
-// 	if err != nil {
-// 		log.Errorf("select param error:%s", err)
-// 		writeError(wr, "sql error", err.Error())
-// 		return
-// 	}
-
-// 	err = util.Pull(p.LocalPath, defaultRemoteName, "")
-// 	if err != nil {
-// 		log.Errorf("git pull error:%s", err)
-// 		writeError(wr, "git error", err.Error())
-// 		return
-// 	}
-
-// 	writeSuccess(wr, "git pull success")
-// }
-
 func DelPorject(wr http.ResponseWriter, r *http.Request) {
 	p := &model.Project{}
 	err := ParseParam(r, p)
@@ -198,47 +168,6 @@ func DelPorject(wr http.ResponseWriter, r *http.Request) {
 
 	writeSuccess(wr, "删除成功")
 }
-
-// type FileInfo struct {
-// 	Value  string `json:"value"`
-// 	Label  string `jsno:"label"`
-// 	IsLeaf bool   `json:"isLeaf"`
-// }
-
-// func ListDir(wr http.ResponseWriter, r *http.Request) {
-// 	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
-// 	if err != nil {
-// 		log.Errorf("parse param id error:%s", err)
-// 		writeError(wr, "param error", err.Error())
-// 		return
-// 	}
-
-// 	p, err := model.GetProject(id)
-// 	if err != nil {
-// 		log.Errorf("selet sql error:%s", err)
-// 		writeError(wr, "sql error", err.Error())
-// 		return
-// 	}
-
-// 	pathPre := path.Join(p.LocalPath, r.FormValue("path"))
-// 	entrys, err := os.ReadDir(pathPre)
-// 	if err != nil {
-// 		log.Errorf("read dir error:%s", err)
-// 		writeError(wr, "logic error", err.Error())
-// 		return
-// 	}
-
-// 	resu := make([]*FileInfo, 0)
-// 	for _, e := range entrys {
-// 		resu = append(resu, &FileInfo{
-// 			Label:  e.Name(),
-// 			Value:  path.Join(r.FormValue("path"), e.Name()),
-// 			IsLeaf: !e.IsDir(),
-// 		})
-// 	}
-
-// 	writeJson(wr, resu)
-// }
 
 func ListBranch(wr http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)

@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -181,6 +182,10 @@ type task struct {
 	t         *model.Task
 	tl        *model.TaskLog
 
+	gobin    string
+	srcfile  string
+	destfile string
+
 	files   []*os.File
 	out_log *log.Logger
 
@@ -207,86 +212,35 @@ func (t *task) start() {
 		log.Error(t.err)
 		return
 	}
-	defer func() { os.RemoveAll(t.p.LocalPath) }()
+	defer os.RemoveAll(t.p.LocalPath)
 	t.out_log.Info("git clone success")
 
-	t.out_log.Infof("git log %s", t.t.Branch)
-	ls, err := util.GitLog(t.p.LocalPath, 1)
-	if err != nil {
-		t.out_log.Error(err)
-		t.err = err
+	t.gobin = path.Join(goenv.GetGoPath(t.goversion), "bin/go")
+	t.out_log.Infof("go bin:%s", t.gobin)
+
+	t.srcfile = path.Join(t.p.LocalPath, t.t.MainFile)
+	t.out_log.Infof("src file:%s", t.srcfile)
+
+	t.destfile = path.Join(config.C.DestPath, t.p.Name, t.t.Branch, t.t.DestFile)
+	t.out_log.Infof("dest file:%s", t.destfile)
+
+	if t.getCommit(); t.err != nil {
 		return
 	}
-	if len(ls) < 1 {
-		t.out_log.Errorf("couldn't find git log")
-		t.err = errors.New("couldn't find git log")
+
+	if t.pringGoEnv(); t.err != nil {
 		return
 	}
-	model.UpdateTaskLogDescription(t.id, ls[0].Commit)
-	t.out_log.Info("git get commmit log success")
 
-	gobin := path.Join(goenv.GetGoPath(t.goversion), "bin/go")
-	t.out_log.Infof("go bin:%s", gobin)
-
-	srcfile := path.Join(t.p.LocalPath, t.t.MainFile)
-	t.out_log.Infof("src file:%s", srcfile)
-
-	destfile := path.Join(config.C.DestPath, t.p.Name, t.t.Branch, t.t.DestFile)
-	t.out_log.Infof("dest file:%s", destfile)
-
-	ospath := os.Getenv("PATH")
-	env := make([]string, 0)
-	if t.p.GoMod {
-		env = append(env, "GO111MODULE=on")
-	} else {
-		env = append(env, "GO111MODULE=off")
-	}
-	env = append(env, "PATH=/opt/gcc-4.8.1/bin:"+ospath)
-	env = append(env, "GOBIN="+goenv.GetGoPath(t.goversion))
-	env = append(env, "GOPATH="+t.p.WorkSpace)
-	env = append(env, "GOPROXY=https://goproxy.cn,direct")
-	env = append(env, "GOCACHE="+path.Join(t.p.WorkSpace, ".cache/"))
-	env = append(env, "GOOS="+t.t.DestOs)
-	env = append(env, "GOARCH="+t.t.DestArch)
-	env = append(env, strings.Split(t.p.Env, ";")...)
-	env = append(env, strings.Split(t.t.Env, ";")...)
-
-	goenv := exec.Command(gobin, "env")
-	goenv.Dir = t.p.LocalPath
-	out, err := goenv.CombinedOutput()
-	if err != nil {
-		t.out_log.Error(t.err)
-		t.err = err
+	if t.runBeforeBuildCmd(); t.err != nil {
 		return
 	}
-	t.out_log.Infof("go env:\n%s", string(out))
-
-	// TODO
-	// go get -insecure
-	// var stderr bytes.Buffer
-	// goget := exec.Command(gobin, "get", "-insecure", "./...")
-	// goget.Dir = t.p.LocalPath
-	// goget.Env = env
-	// goget.Stdout = t.out_log.Out
-	// goget.Stderr = &stderr
-	// t.out_log.Info(goget.String())
-	// err = goget.Run()
-	// if err != nil {
-	// 	t.out_log.Error(err)
-	// 	t.err = err
-	// 	return
-	// }
-	// if stderr.Len() > 0 {
-	// 	t.out_log.Error(stderr.String())
-	// 	t.err = errors.New(stderr.String())
-	// 	return
-	// }
 
 	// go build
 	var err_out bytes.Buffer
-	c := exec.Command(gobin, "build", "-o", destfile, srcfile)
+	c := exec.Command(t.gobin, "build", "-o", t.destfile, t.srcfile)
 	c.Dir = t.p.LocalPath
-	c.Env = env
+	c.Env = t.getEnv()
 	c.Stdout = t.out_log.Out
 	c.Stderr = &err_out
 
@@ -306,6 +260,10 @@ func (t *task) start() {
 	}
 	t.out_log.Info("building finished")
 
+	if t.runAfterBuildCmd(); t.err != nil {
+		return
+	}
+
 	// TODO:查看是否输出文件,校验本地输出文件 sha2 和文件大小
 	ip, err := util.GetLocalIp()
 	if err != nil {
@@ -317,6 +275,126 @@ func (t *task) start() {
 	model.UpdateTaskLogUrl(t.id, url)
 
 	t.out_log.Infof("task log id:%d file url:%s", t.id, url)
+}
+
+func readline(str string) []string {
+	resu := make([]string, 0)
+	scanner := bufio.NewScanner(strings.NewReader(str))
+	for scanner.Scan() {
+		resu = append(resu, scanner.Text())
+	}
+	return resu
+}
+
+func (t *task) getEnv() []string {
+	env := make([]string, 0)
+	if t.p.GoMod {
+		env = append(env, "GO111MODULE=on")
+	} else {
+		env = append(env, "GO111MODULE=off")
+	}
+	env = append(env, "GOBIN="+goenv.GetGoPath(t.goversion))
+	env = append(env, "GOPATH="+t.p.WorkSpace)
+	env = append(env, "GOPROXY=https://goproxy.cn,direct")
+	env = append(env, "GOCACHE="+path.Join(t.p.WorkSpace, ".cache/"))
+	env = append(env, "GOOS="+t.t.DestOs)
+	env = append(env, "GOARCH="+t.t.DestArch)
+	env = append(env, readline(t.p.Env)...)
+	env = append(env, readline(t.t.Env)...)
+	return env
+}
+
+func (t *task) getCommit() {
+	t.out_log.Infof("git log %s", t.t.Branch)
+	ls, err := util.GitLog(t.p.LocalPath, 1)
+	if err != nil {
+		t.out_log.Error(err)
+		t.err = err
+		return
+	}
+	if len(ls) < 1 {
+		t.out_log.Errorf("couldn't find git log")
+		t.err = errors.New("couldn't find git log")
+		return
+	}
+	model.UpdateTaskLogDescription(t.id, ls[0].Commit)
+	t.out_log.Info("git get commmit log success")
+}
+
+func (t *task) goGet() {
+	// go get -insecure
+	var stderr bytes.Buffer
+	goget := exec.Command(t.gobin, "get", "-insecure", "./...")
+	goget.Dir = t.p.LocalPath
+	goget.Env = t.getEnv()
+	goget.Stdout = t.out_log.Out
+	goget.Stderr = &stderr
+	t.out_log.Info(goget.String())
+	err := goget.Run()
+	if err != nil {
+		t.out_log.Error(err)
+		t.err = err
+		return
+	}
+	if stderr.Len() > 0 {
+		t.out_log.Error(stderr.String())
+		t.err = errors.New(stderr.String())
+		return
+	}
+}
+
+func (t *task) pringGoEnv() {
+	goenv := exec.Command(t.gobin, "env")
+	goenv.Dir = t.p.LocalPath
+	out, err := goenv.CombinedOutput()
+	if err != nil {
+		t.out_log.Error(t.err)
+		t.err = err
+		return
+	}
+	t.out_log.Infof("go env:\n%s", string(out))
+}
+
+func (t *task) runBeforeBuildCmd() {
+	t.runCmd(t.p.BeforeBuildCmd)
+}
+
+func (t *task) runAfterBuildCmd() {
+	t.runCmd(t.p.AfterBuildCmd)
+}
+
+func (t *task) runCmd(cmdstr string) {
+	f, err := os.CreateTemp(t.p.LocalPath, "*.sh")
+	if err != nil {
+		t.err = err
+		return
+	}
+
+	_, err = f.WriteString(cmdstr)
+	f.Close()
+	if err != nil {
+		t.err = err
+		return
+	}
+
+	var stderr bytes.Buffer
+	c := exec.Command("/bin/sh", f.Name())
+	c.Dir = t.p.LocalPath
+	c.Env = t.getEnv()
+	c.Stdout = t.out_log.Out
+	c.Stderr = &stderr
+
+	err = c.Run()
+	if err != nil {
+		t.out_log.Error(err)
+		t.err = err
+		return
+	}
+	if stderr.Len() > 0 {
+		t.out_log.Error(stderr.String())
+		t.err = errors.New(stderr.String())
+		return
+	}
 }
 
 func (t *task) createOutFile() {
@@ -361,7 +439,6 @@ func (t *task) clean() {
 }
 
 // TODO:尝试编译的时候加锁
-// git pull 总是卡住,先不加锁
 func tryLock() {
 
 }

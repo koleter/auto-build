@@ -14,17 +14,19 @@ const (
 )
 
 type Task struct {
-	Id        int64     `xorm:"pk" json:"id"`
-	ProjectId int64     `xorm:"index" json:"project_id"`
-	GoVersion string    `xorm:"index" json:"go_version_id"` // envid
-	Branch    string    `xorm:"varchar(10)" json:"branch"`
-	AutoBuild bool      `xorm:"Bool" json:"auto_build"`
-	MainFile  string    `xorm:"varchar(20)" json:"main_file"` // 主文件
-	DestFile  string    `xorm:"varchar(20)" json:"dest_file"` // 目标文件
-	DestOs    string    `xorm:"varchar(10)" json:"dest_os"`   // 目标系统
-	DestArch  string    `xorm:"varchar(10)" json:"dest_arch"` // 目标架构
-	Env       string    `xorm:"varchar(255)" json:"env"`      // 环境变量key1=value1;key2=value2
-	DeletedAt time.Time `xorm:"deleted" json:"-"`
+	Id             int64     `xorm:"pk" json:"id"`
+	ProjectId      int64     `xorm:"index" json:"project_id"`
+	GoVersion      string    `xorm:"index" json:"go_version_id"` // envid
+	Branch         string    `xorm:"varchar(10)" json:"branch"`
+	AutoBuild      bool      `xorm:"Bool" json:"auto_build"`
+	MainFile       string    `xorm:"varchar(20)" json:"main_file"` // 主文件
+	DestFile       string    `xorm:"varchar(20)" json:"dest_file"` // 目标文件
+	DestOs         string    `xorm:"varchar(10)" json:"dest_os"`   // 目标系统
+	DestArch       string    `xorm:"varchar(10)" json:"dest_arch"` // 目标架构
+	Env            string    `xorm:"varchar(255)" json:"env"`      // 环境变量key1=value1;key2=value2
+	BeforeBuildCmd string    `xorm:"varchar(255)" json:"before_build_cmd"`
+	AfterBuildCmd  string    `xorm:"varchar(255)" json:"after_build_cmd"`
+	DeletedAt      time.Time `xorm:"deleted" json:"-"`
 }
 
 type TaskLog struct {
