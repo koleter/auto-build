@@ -44,7 +44,7 @@ func InitSqlLite(filepath string) (err error) {
 	if err != nil {
 		return err
 	}
-	engine.ShowSQL(true)
+	engine.ShowSQL(false)
 
 	return engine.Ping()
 }
