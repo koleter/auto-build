@@ -69,6 +69,12 @@ func AddPorject(wr http.ResponseWriter, r *http.Request) {
 		os.RemoveAll(getBarePath(p.Name))
 	}
 
+	if err := os.MkdirAll(getBarePath(p.Name), os.ModePerm); err != nil {
+		log.Errorf("mkdir %s error:%s", getBarePath(p.Name), err)
+		writeError(wr, "path error", "make die error")
+		return
+	}
+
 	if err := util.CloenWithBare(getBarePath(p.Name), p.Url, p.Token); err != nil {
 		log.Errorf("clone bare error:%s", err)
 		writeError(wr, "git error", "clone bare error")

@@ -40,6 +40,7 @@ web_path = "./dist/" # 前端目录,可以用下面的前端项目编译后的 d
 - [x] 项目不在单独目录下,而是每次 git clone -depth=1 
 - [x] golang 包不用用户上传,自己下载
 - [ ] 文件大小和 hash
+- [ ] go version 配置在 project
 
 ## 前端
 [github.com/hash-rabbit/auto-build-web](https://github.com/hash-rabbit/auto-build-web)
