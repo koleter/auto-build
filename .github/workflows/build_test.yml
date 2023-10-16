@@ -29,5 +29,5 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v3
       with:
-          name: auto-build
-          path: ./auto-build
+        name: auto-build
+        path: ./auto-build
