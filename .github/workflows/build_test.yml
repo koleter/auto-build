@@ -30,7 +30,10 @@ jobs:
       run: echo `ls`
 
     - name: Upload
+      id: upload
       uses: actions/upload-artifact@v3
       with:
         name: auto-build
         path: ./auto-build
+    - name: Url
+      run: echo ${{ steps.upload.outputs }}
