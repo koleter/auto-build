@@ -26,8 +26,10 @@ jobs:
     - name: Test
       run: go test -v ./...
 
-    - name: Upload
+    - name: Ls
       run: echo `ls`
+
+    - name: Upload
       uses: actions/upload-artifact@v3
       with:
         name: auto-build
