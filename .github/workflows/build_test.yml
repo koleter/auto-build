@@ -27,6 +27,7 @@ jobs:
       run: go test -v ./...
 
     - name: Upload
+      run: echo `ls`
       uses: actions/upload-artifact@v3
       with:
         name: auto-build
