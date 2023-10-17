@@ -145,7 +145,7 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 
 	t := &task{
 		id:        tl.Id,
-		goversion: tk.GoVersion,
+		goversion: p.GoVersion,
 		p:         p,
 		t:         tk,
 		tl:        tl,
