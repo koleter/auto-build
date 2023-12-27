@@ -287,7 +287,7 @@ func readline(str string) []string {
 }
 
 func (t *task) getEnv() []string {
-	env := make([]string, 0)
+	env := os.Environ()
 	if t.p.GoMod {
 		env = append(env, "GO111MODULE=on")
 	} else {
