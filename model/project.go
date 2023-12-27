@@ -12,8 +12,9 @@ type Project struct {
 	Url            string    `xorm:"varchar(50)"  json:"url"`
 	MainBranch     string    `xorm:"varchar(30) default master" json:"main_branch"`
 	Token          string    `xorm:"varchar(50)"  json:"token"`
+	GoVersion      string    `xorm:"index" json:"go_version_id"` // envid
 	GoMod          bool      `xorm:"bool" json:"go_mod"`
-	WorkSpace      string    `xorm:"varchar(50)" json:"workspace"` //only go path(not mod) used
+	WorkSpace      string    `xorm:"varchar(50)" json:"workspace"` // only go path(not mod) used
 	Env            string    `xorm:"varchar(255)" json:"env"`      // 环境变量key1=value1;key2=value2
 	BeforeBuildCmd string    `xorm:"varchar(255)" json:"before_build_cmd"`
 	AfterBuildCmd  string    `xorm:"varchar(255)" json:"after_build_cmd"`

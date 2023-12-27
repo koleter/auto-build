@@ -145,7 +145,7 @@ func StartTask(wr http.ResponseWriter, r *http.Request) {
 
 	t := &task{
 		id:        tl.Id,
-		goversion: tk.GoVersion,
+		goversion: p.GoVersion,
 		p:         p,
 		t:         tk,
 		tl:        tl,
@@ -287,7 +287,7 @@ func readline(str string) []string {
 }
 
 func (t *task) getEnv() []string {
-	env := make([]string, 0)
+	env := os.Environ()
 	if t.p.GoMod {
 		env = append(env, "GO111MODULE=on")
 	} else {
