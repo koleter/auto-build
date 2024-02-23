@@ -7,3 +7,4 @@ workspace/
 
 clean.sh
 *.db
+/.idea/
