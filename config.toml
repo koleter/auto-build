@@ -1,0 +1,10 @@
+port = 7878
+log_path = "../log"
+log_level = "DEBUG"
+bare_path = "../bare"
+record_path = "../buildlog"
+go_env_path = "../goenv"
+default_go_path = "../workspace"
+dest_path = "../output"
+sql_file = "./online.db"
+web_path = "../dist"
